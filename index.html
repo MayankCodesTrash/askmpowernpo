@@ -345,9 +345,9 @@
     <div class="cgrid rv">
       <div class="cform">
         <div class="ctabs">
-          <button class="ctab on" onclick="switchTab(this,'np')">I'm a Nonprofit</button>
-          <button class="ctab" onclick="switchTab(this,'st')">I'm a Student</button>
-          <button class="ctab" onclick="switchTab(this,'mt')">I'm a Mentor</button>
+          <button class="ctab on" data-panel="pnp">I'm a Nonprofit</button>
+          <button class="ctab" data-panel="pst">I'm a Student</button>
+          <button class="ctab" data-panel="pmt">I'm a Mentor</button>
         </div>
         <div class="cpanel" id="pnp">
           <div class="fg"><label>Organization Name</label><input type="text" placeholder="e.g. Des Moines Food Bank"/></div>
@@ -355,7 +355,7 @@
           <div class="fg"><label>Email Address</label><input type="email" placeholder="you@organization.org"/></div>
           <div class="fg"><label>Describe Your IT Need</label><textarea rows="4" placeholder="e.g. We track volunteers in a spreadsheet and it takes hours. We need a better system."></textarea></div>
           <div class="fg"><label>Urgency (1 = low, 5 = critical)</label><div class="urow"><input type="range" min="1" max="5" value="3" oninput="this.nextElementSibling.textContent=this.value"/><span class="uval">3</span></div></div>
-          <button class="btn" style="width:100%;border:none" onclick="submitForm(this)">Submit IT Request →</button>
+          <button class="btn" style="width:100%;border:none" data-submit="true">Submit IT Request →</button>
         </div>
         <div class="cpanel hide" id="pst">
           <div class="fg"><label>Full Name</label><input type="text" placeholder="Your name"/></div>
@@ -363,7 +363,7 @@
           <div class="fg"><label>Email Address</label><input type="email" placeholder="you@school.edu"/></div>
           <div class="fg"><label>Your Coding Skills</label><div class="cbs"><label class="cb"><input type="checkbox"/> Python</label><label class="cb"><input type="checkbox"/> JavaScript</label><label class="cb"><input type="checkbox"/> React</label><label class="cb"><input type="checkbox"/> SQL / Databases</label><label class="cb"><input type="checkbox"/> Other</label></div></div>
           <div class="fg"><label>Why do you want to join MpowerNPO?</label><textarea rows="3" placeholder="Tell us what drives you..."></textarea></div>
-          <button class="btn" style="width:100%;border:none" onclick="submitForm(this)">Apply to Join →</button>
+          <button class="btn" style="width:100%;border:none" data-submit="true">Apply to Join →</button>
         </div>
         <div class="cpanel hide" id="pmt">
           <div class="fg"><label>Full Name</label><input type="text" placeholder="Your name"/></div>
@@ -371,11 +371,11 @@
           <div class="fg"><label>Email Address</label><input type="email" placeholder="you@company.com"/></div>
           <div class="fg"><label>Areas of Expertise</label><div class="cbs"><label class="cb"><input type="checkbox"/> Web Development</label><label class="cb"><input type="checkbox"/> Data &amp; Analytics</label><label class="cb"><input type="checkbox"/> Project Management</label><label class="cb"><input type="checkbox"/> AI &amp; Automation</label><label class="cb"><input type="checkbox"/> UI/UX Design</label></div></div>
           <div class="fg"><label>Hours available per month</label><input type="text" placeholder="e.g. 4–6 hours"/></div>
-          <button class="btn" style="width:100%;border:none" onclick="submitForm(this)">Volunteer as Mentor →</button>
+          <button class="btn" style="width:100%;border:none" data-submit="true">Volunteer as Mentor →</button>
         </div>
       </div>
       <div class="cinfo">
-        <div class="cicard"><div class="ciico">✉️</div><div><div class="cilbl">Email Us</div><div class="cival"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7d15181111123d100d120a180f130d1253120f1a">[email&#160;protected]</a></div></div></div>
+        <div class="cicard"><div class="ciico">✉️</div><div><div class="cilbl">Email Us</div><div class="cival">askmpowernpo&#64;gmail.com</div></div></div>
         <div class="cicard"><div class="ciico">📍</div><div><div class="cilbl">Based In</div><div class="cival">Johnston, Iowa</div></div></div>
         <div class="cicard"><div class="ciico">🎓</div><div><div class="cilbl">School</div><div class="cival">Johnston Middle School</div></div></div>
         <div class="cquote"><p>"Technology education should be applied, responsible, and measurable. MpowerNPO is designed to make that possible."</p><small>— Mayank Bhatt, Founder &amp; Youth Leader</small></div>
@@ -390,7 +390,7 @@
   <p class="fnote">AI-Powered Youth Strengthening Local Nonprofits</p>
 </footer>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
   // No scroll hiding - everything visible
 
   // Tab switching
