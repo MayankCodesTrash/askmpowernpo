@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MpowerNPO — AI-Powered Youth Strengthening Local Nonprofits</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #f4f7ff;
+      --bg2:     #e8edf8;
+      --bg3:     #ffffff;
+      --blue:    #1a3a8f;
+      --blue-lt: #2d57c8;
+      --gold:    #e8a020;
+      --text:    #0d1b3e;
+      --muted:   #4d6494;
+      --border:  rgba(26,58,143,0.15);
+    }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; line-height: 1.65; overflow-x: hidden; }
+
+    /* NAV */
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 1rem 4rem; background: rgba(244,247,255,0.92); backdrop-filter: blur(14px); border-bottom: 1px solid var(--border); }
+    .nav-logo { text-decoration: none; }
+    .nav-logo-main { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 900; color: var(--text); letter-spacing: -0.02em; display: block; }
+    .nav-logo-main span { color: var(--gold); }
+    .nav-logo-sub { font-size: 0.58rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); display: block; margin-top: 1px; }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: 0.875rem; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--blue); }
+    .nav-cta { background: var(--blue); color: #fff; padding: 0.55rem 1.4rem; border-radius: 100px; font-size: 0.85rem; font-weight: 600; text-decoration: none; transition: background 0.2s, transform 0.15s; }
+    .nav-cta:hover { background: var(--blue-lt); transform: translateY(-1px); }
+
+    /* HERO */
+    #hero { position: relative; min-height: 100vh; display: flex; align-items: center; padding: 8rem 4rem 5rem; overflow: hidden; }
+    .orb { position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none; }
+    .orb1 { width: 600px; height: 600px; background: radial-gradient(circle, rgba(26,58,143,0.14) 0%, transparent 70%); top: -100px; right: -150px; animation: f1 8s ease-in-out infinite; }
+    .orb2 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(232,160,32,0.1) 0%, transparent 70%); bottom: 0; left: -80px; animation: f2 10s ease-in-out infinite; }
+    @keyframes f1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-30px,30px)} }
+    @keyframes f2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(20px,-20px)} }
+    .hero-inner { position: relative; z-index: 1; max-width: 780px; }
+    .pill { display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(26,58,143,0.07); border: 1px solid var(--border); padding: 0.4rem 1rem; border-radius: 100px; font-size: 0.8rem; font-weight: 500; color: var(--blue-lt); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 2rem; animation: up 0.8s ease both; }
+    .pill::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--gold); display:inline-block; }
+    h1 { font-family: 'Playfair Display', serif; font-size: clamp(3rem,6vw,5.5rem); font-weight: 900; line-height: 1.05; letter-spacing: -0.03em; animation: up 0.8s 0.15s ease both; }
+    h1 em { font-style: italic; color: var(--blue); }
+    .hero-sub { margin-top: 1.5rem; max-width: 560px; color: var(--muted); font-size: 1.1rem; font-weight: 300; animation: up 0.8s 0.3s ease both; }
+    .actions { margin-top: 2.5rem; display: flex; gap: 1rem; flex-wrap: wrap; animation: up 0.8s 0.45s ease both; }
+    .btn { background: var(--blue); color: #fff; padding: 0.8rem 2rem; border-radius: 100px; font-size: 0.95rem; font-weight: 600; text-decoration: none; border: none; cursor: pointer; box-shadow: 0 4px 24px rgba(26,58,143,0.3); font-family: 'Outfit',sans-serif; transition: background 0.2s, transform 0.15s; }
+    .btn:hover { background: var(--blue-lt); transform: translateY(-2px); }
+    .btn-out { background: transparent; color: var(--text); padding: 0.8rem 2rem; border-radius: 100px; font-size: 0.95rem; font-weight: 500; text-decoration: none; border: 1px solid var(--border); cursor: pointer; transition: border-color 0.2s, color 0.2s; }
+    .btn-out:hover { border-color: var(--blue-lt); color: var(--blue-lt); }
+    .hero-stats { margin-top: 4rem; display: flex; gap: 3rem; flex-wrap: wrap; animation: up 0.8s 0.6s ease both; }
+    .hstat { display: flex; flex-direction: column; }
+    .hnum { font-family: 'Playfair Display', serif; font-size: 2.2rem; font-weight: 900; color: var(--blue); line-height: 1; }
+    .hlbl { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.3rem; }
+    @keyframes up { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+
+    /* SECTIONS */
+    section { position: relative; z-index: 1; }
+    .inner { max-width: 1100px; margin: 0 auto; padding: 6rem 4rem; }
+    .slabel { font-size: 0.75rem; font-weight: 600; color: var(--blue-lt); text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 1rem; display: block; }
+    .stitle { font-family: 'Playfair Display', serif; font-size: clamp(2rem,4vw,3rem); font-weight: 900; line-height: 1.1; letter-spacing: -0.02em; }
+    .stitle em { font-style: italic; color: var(--gold); }
+    .ssub { color: var(--muted); font-size: 1rem; max-width: 520px; margin-top: 1rem; }
+    .divider { border: none; height: 1px; background: linear-gradient(90deg,transparent,var(--border),transparent); margin: 0 4rem; }
+
+    /* REVEAL */
+    .rv { opacity: 1; transform: none; }
+
+    /* HOW IT WORKS */
+    #how { background: var(--bg2); }
+    .steps { margin-top: 3.5rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px,1fr)); gap: 1.5rem; }
+    .scard { background: var(--bg3); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; position: relative; overflow: hidden; opacity: 1; transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s; }
+    .scard:hover { transform: translateY(-4px); border-color: rgba(26,58,143,0.35); box-shadow: 0 8px 40px rgba(26,58,143,0.1); }
+    .scard::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--blue),var(--gold)); opacity:0; transition:opacity 0.25s; }
+    .scard:hover::before { opacity:1; }
+    .snum { font-family:'Playfair Display',serif; font-size:3.5rem; font-weight:900; color:rgba(26,58,143,0.09); line-height:1; position:absolute; top:1rem; right:1.5rem; }
+    .sicon { width:42px; height:42px; border-radius:10px; background:rgba(26,58,143,0.07); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:1.2rem; margin-bottom:1.2rem; }
+    .scard h3 { font-size:1rem; font-weight:600; margin-bottom:0.5rem; }
+    .scard p { font-size:0.875rem; color:var(--muted); line-height:1.6; }
+
+    /* IMPACT */
+    #impact { background: var(--bg); }
+    .igrid { margin-top: 3.5rem; display: grid; grid-template-columns: repeat(2,1fr); gap: 1.5rem; }
+    .icard { background: var(--bg3); border: 1px solid var(--border); border-radius: 16px; padding: 2rem 2.2rem; display: flex; align-items: flex-start; gap: 1.2rem; opacity: 1; transition: transform 0.25s, border-color 0.25s; }
+    .icard:hover { transform: translateY(-3px); border-color: rgba(232,160,32,0.3); }
+    .iico { flex-shrink:0; width:48px; height:48px; border-radius:12px; background:rgba(232,160,32,0.1); border:1px solid rgba(232,160,32,0.2); display:flex; align-items:center; justify-content:center; font-size:1.4rem; }
+    .icard h3 { font-size:1rem; font-weight:600; margin-bottom:0.3rem; }
+    .icard p { font-size:0.875rem; color:var(--muted); }
+
+    /* ROLES */
+    #roles { background: var(--bg2); }
+    .rgrid { margin-top: 3.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+    .rcard { background: var(--bg3); border: 1px solid var(--border); border-radius: 20px; padding: 2.5rem; opacity: 1; }
+    .rtag { display:inline-block; font-size:0.7rem; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; padding:0.3rem 0.8rem; border-radius:100px; margin-bottom:1.2rem; }
+    .rtag.y { background:rgba(26,58,143,0.1); color:var(--blue-lt); border:1px solid rgba(26,58,143,0.25); }
+    .rtag.m { background:rgba(232,160,32,0.1); color:var(--gold); border:1px solid rgba(232,160,32,0.3); }
+    .rcard h3 { font-family:'Playfair Display',serif; font-size:1.5rem; font-weight:700; margin-bottom:1rem; }
+    .rcard ul { list-style:none; display:flex; flex-direction:column; gap:0.7rem; }
+    .rcard li { font-size:0.9rem; color:var(--muted); padding-left:1.3rem; position:relative; }
+    .rcard li::before { content:'→'; position:absolute; left:0; color:var(--blue-lt); font-size:0.85rem; }
+
+    /* IOWA */
+    #iowa { background: var(--bg); }
+    .iowa-grid { margin-top: 3rem; display: grid; grid-template-columns: repeat(3,1fr); gap: 1.5rem; }
+    .iowa-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 16px; padding: 2rem; transition: transform 0.25s, box-shadow 0.25s; }
+    .iowa-card:hover { transform: translateY(-3px); box-shadow: 0 8px 32px rgba(26,58,143,0.1); }
+    .iowa-num { font-family:'Playfair Display',serif; font-size:2.8rem; font-weight:900; color:var(--blue); line-height:1; margin-bottom:0.4rem; }
+    .iowa-ttl { font-size:0.85rem; font-weight:600; color:var(--text); margin-bottom:0.6rem; }
+    .iowa-desc { font-size:0.82rem; color:var(--muted); line-height:1.6; }
+    .iowa-box { margin-top:2.5rem; background:linear-gradient(135deg,rgba(26,58,143,0.07),rgba(26,58,143,0.03)); border:1px solid var(--border); border-radius:16px; padding:1.8rem 2rem; display:flex; gap:1.2rem; align-items:flex-start; }
+    .iowa-box span { font-size:1.5rem; flex-shrink:0; }
+    .iowa-box div { font-size:0.92rem; color:var(--text); line-height:1.7; }
+
+    /* FOUNDER */
+    #founder { background: var(--bg2); }
+    .finner { display:flex; gap:4rem; align-items:center; }
+    .favatar { flex-shrink:0; width:220px; height:220px; border-radius:24px; background:linear-gradient(135deg,var(--blue) 0%,#0d2260 100%); border:2px solid var(--border); display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+    .favatar-bg { position:absolute; inset:0; background:radial-gradient(circle at 40% 40%,rgba(232,160,32,0.15),transparent 60%); }
+    .favatar-letter { position:relative; z-index:1; font-family:'Playfair Display',serif; font-size:5rem; font-weight:900; color:rgba(255,255,255,0.5); }
+    .fname { font-family:'Playfair Display',serif; font-size:2.2rem; font-weight:900; letter-spacing:-0.02em; margin-bottom:0.3rem; }
+    .ftitle { color:var(--gold); font-size:0.85rem; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; margin-bottom:1.2rem; }
+    .fbio { color:var(--muted); font-size:0.95rem; line-height:1.75; max-width:500px; }
+    .chips { display:flex; gap:0.7rem; flex-wrap:wrap; margin-top:1.5rem; }
+    .chip { font-size:0.75rem; font-weight:500; padding:0.35rem 0.9rem; border-radius:100px; background:rgba(26,58,143,0.08); border:1px solid var(--border); color:var(--blue-lt); }
+
+    /* CONTACT */
+    #contact { background: var(--bg); }
+    .cgrid { margin-top:3rem; display:grid; grid-template-columns:1.4fr 1fr; gap:3rem; align-items:start; }
+    .cform { background:var(--bg3); border:1px solid var(--border); border-radius:20px; overflow:hidden; }
+    .ctabs { display:flex; border-bottom:1px solid var(--border); }
+    .ctab { flex:1; padding:1rem; background:transparent; border:none; font-family:'Outfit',sans-serif; font-size:0.85rem; font-weight:500; color:var(--muted); cursor:pointer; transition:all 0.2s; border-bottom:2px solid transparent; }
+    .ctab.on { color:var(--blue); border-bottom-color:var(--blue); background:rgba(26,58,143,0.04); }
+    .ctab:hover:not(.on) { color:var(--text); background:rgba(26,58,143,0.03); }
+    .cpanel { padding:1.8rem; display:flex; flex-direction:column; gap:1.1rem; }
+    .cpanel.hide { display:none; }
+    .fg { display:flex; flex-direction:column; gap:0.4rem; }
+    .fg label { font-size:0.8rem; font-weight:600; color:var(--text); }
+    .fg input, .fg textarea, .fg select { border:1px solid var(--border); border-radius:10px; padding:0.7rem 1rem; font-family:'Outfit',sans-serif; font-size:0.9rem; color:var(--text); background:var(--bg); outline:none; resize:vertical; transition:border-color 0.2s, box-shadow 0.2s; }
+    .fg input:focus, .fg textarea:focus { border-color:var(--blue-lt); box-shadow:0 0 0 3px rgba(26,58,143,0.1); }
+    .cbs { display:flex; flex-wrap:wrap; gap:0.6rem; }
+    .cb { display:flex; align-items:center; gap:0.4rem; font-size:0.82rem; color:var(--muted); cursor:pointer; }
+    .urow { display:flex; align-items:center; gap:1rem; }
+    .urow input[type="range"] { flex:1; accent-color:var(--blue); }
+    .uval { font-family:'Playfair Display',serif; font-weight:900; font-size:1.4rem; color:var(--blue); min-width:24px; text-align:center; }
+    .cinfo { display:flex; flex-direction:column; gap:1.2rem; }
+    .cicard { display:flex; gap:1rem; align-items:center; background:var(--bg3); border:1px solid var(--border); border-radius:14px; padding:1.2rem 1.4rem; }
+    .ciico { font-size:1.4rem; }
+    .cilbl { font-size:0.72rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); }
+    .cival { font-size:0.95rem; font-weight:500; color:var(--text); margin-top:0.15rem; }
+    .cquote { background:linear-gradient(135deg,rgba(26,58,143,0.07),rgba(26,58,143,0.03)); border:1px solid var(--border); border-radius:14px; padding:1.4rem; }
+    .cquote p { font-family:'Playfair Display',serif; font-style:italic; font-size:0.95rem; color:var(--text); line-height:1.6; }
+    .cquote small { font-size:0.75rem; color:var(--muted); margin-top:0.6rem; display:block; }
+    .fsuccess { text-align:center; padding:2.5rem 1.5rem; }
+    .fsuccess span { font-size:2.5rem; display:block; margin-bottom:0.8rem; }
+    .fsuccess p { font-size:1rem; color:var(--blue); font-weight:600; }
+    .fsuccess small { font-size:0.8rem; color:var(--muted); margin-top:0.4rem; display:block; }
+
+    /* FOOTER */
+    footer { background:var(--bg2); padding:2.5rem 4rem; display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--border); flex-wrap:wrap; gap:1rem; }
+    .flogo { font-family:'Playfair Display',serif; font-size:1.1rem; font-weight:900; color:var(--text); }
+    .flogo span { color:var(--gold); }
+    .fnote { font-size:0.78rem; color:var(--muted); }
+
+    /* RESPONSIVE */
+    @media(max-width:900px){ .iowa-grid{grid-template-columns:repeat(2,1fr);} }
+    @media(max-width:768px){
+      nav{padding:1rem 1.5rem;} .nav-links{display:none;}
+      #hero{padding:7rem 1.5rem 4rem;} .inner{padding:4rem 1.5rem;}
+      .divider{margin:0 1.5rem;} footer{padding:2rem 1.5rem;}
+      .steps,.igrid,.rgrid,.cgrid{grid-template-columns:1fr;}
+      .finner{flex-direction:column;}
+    }
+    @media(max-width:600px){ .iowa-grid{grid-template-columns:1fr;} }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="#">
+    <span class="nav-logo-main">Mpower<span>NPO</span></span>
+    <span class="nav-logo-sub">Founder &amp; Youth Leader: Mayank Bhatt</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#how">How It Works</a></li>
+    <li><a href="#impact">Impact</a></li>
+    <li><a href="#iowa">Iowa Stats</a></li>
+    <li><a href="#founder">Founder</a></li>
+  </ul>
+  <a class="nav-cta" href="#contact">Contact Us</a>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="hero-inner">
+    <div class="pill">Youth-Led · AI-Assisted · Community-Driven</div>
+    <h1>We <em>empower</em><br/>nonprofits through<br/>student-built tech.</h1>
+    <p class="hero-sub">MpowerNPO connects local nonprofits facing IT and process needs with trained student developers — guided by AI-assisted planning and experienced mentors.</p>
+    <div class="actions">
+      <a href="#how" class="btn">See How It Works</a>
+      <a href="#contact" class="btn-out">Submit a Request →</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hstat"><div class="hnum">6</div><div class="hlbl">Step Process</div></div>
+      <div class="hstat"><div class="hnum">32K+</div><div class="hlbl">Iowa Nonprofits</div></div>
+      <div class="hstat"><div class="hnum">100%</div><div class="hlbl">Mentor Reviewed</div></div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider"/>
+
+<!-- HOW IT WORKS -->
+<section id="how" style="background:var(--bg2)">
+  <div class="inner">
+    <span class="slabel rv">Process</span>
+    <h2 class="stitle rv">How <em>MpowerNPO</em><br/>gets things done</h2>
+    <p class="ssub rv">A structured, six-step model that turns real nonprofit IT needs into working solutions — responsibly and measurably.</p>
+    <div class="steps">
+      <div class="scard rv"><span class="snum">01</span><div class="sicon">📥</div><h3>Nonprofit Submits a Request</h3><p>A nonprofit identifies a specific IT or process pain point and submits a request for review. Concrete problems only — no vague asks.</p></div>
+      <div class="scard rv"><span class="snum">02</span><div class="sicon">🤖</div><h3>AI Guides Requirements Clarification</h3><p>Our AI assistant works through the IT need with the nonprofit to generate a clear, structured requirements document.</p></div>
+      <div class="scard rv"><span class="snum">03</span><div class="sicon">✅</div><h3>Scope Reviewed &amp; Approved</h3><p>Before any code is written, a mentor reviews and approves the project scope to ensure feasibility and safety.</p></div>
+      <div class="scard rv"><span class="snum">04</span><div class="sicon">👥</div><h3>Youth Team Assigned</h3><p>A trained student team is matched to the request based on skills, availability, and project complexity.</p></div>
+      <div class="scard rv"><span class="snum">05</span><div class="sicon">🧭</div><h3>Mentor-Overseen Execution</h3><p>An experienced mentor oversees every stage of development, ensuring ethical standards and quality delivery.</p></div>
+      <div class="scard rv"><span class="snum">06</span><div class="sicon">📊</div><h3>Delivery &amp; Documented Impact</h3><p>The solution is implemented and measurable outcomes are documented — so every project shows its real community value.</p></div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider"/>
+
+<!-- IMPACT -->
+<section id="impact" style="background:var(--bg)">
+  <div class="inner">
+    <span class="slabel rv">What We Build</span>
+    <h2 class="stitle rv">Practical IT solutions<br/>for <em>real needs</em></h2>
+    <p class="ssub rv">MpowerNPO focuses on high-impact IT improvements — not experimental tech for its own sake.</p>
+    <div class="igrid">
+      <div class="icard rv"><div class="iico">🙋</div><div><h3>Volunteer Registration Automation</h3><p>Replacing manual sign-up sheets with digital workflows can save nonprofit staff <strong>16+ hours per week</strong> — time better spent directly on their mission.</p></div></div>
+      <div class="icard rv"><div class="iico">📋</div><div><h3>Digitizing Intake Workflows</h3><p>Paper-based intake systems slow service delivery and create compliance risk. We build accessible digital intake tools tailored to each nonprofit's unique IT needs.</p></div></div>
+      <div class="icard rv"><div class="iico">🗂️</div><div><h3>Data Organization for Reporting</h3><p><strong>42% of nonprofits</strong> cite lack of adequate data systems as a top challenge. We organize existing data so it's grant-ready, board-ready, and impact-measurable.</p></div></div>
+      <div class="icard rv"><div class="iico">📈</div><div><h3>Service Tracking Dashboards</h3><p>Digitally mature nonprofits are <strong>4× more likely to meet their mission goals.</strong> Our dashboards give staff a live view of programs — no technical expertise needed.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider"/>
+
+<!-- ROLES -->
+<section id="roles" style="background:var(--bg2)">
+  <div class="inner">
+    <span class="slabel rv">Who's Involved</span>
+    <h2 class="stitle rv">Built by <em>youth.</em><br/>Guided by experts.</h2>
+    <p class="ssub rv">Every MpowerNPO project combines the energy of student developers with the accountability of professional mentorship.</p>
+    <div class="rgrid">
+      <div class="rcard rv">
+        <span class="rtag y">Youth Coders</span>
+        <h3>Students Who Build</h3>
+        <ul>
+          <li>Apply classroom coding skills to real-world IT needs</li>
+          <li>Gain hands-on product development experience</li>
+          <li>Learn responsible and practical AI usage</li>
+          <li>Work within documented scope and deliverables</li>
+          <li>Build both technical and civic skills simultaneously</li>
+        </ul>
+      </div>
+      <div class="rcard rv">
+        <span class="rtag m">Mentors</span>
+        <h3>Experts Who Guide</h3>
+        <ul>
+          <li>Approve project plans before any execution begins</li>
+          <li>Ensure data sensitivity and ethical standards are met</li>
+          <li>Review and validate all final deliverables</li>
+          <li>Maintain quality and professional responsibility</li>
+          <li>Bridge student energy with real-world standards</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider"/>
+
+<!-- IOWA STATS -->
+<section id="iowa" style="background:var(--bg)">
+  <div class="inner">
+    <span class="slabel rv">Why It Matters — Iowa</span>
+    <h2 class="stitle rv">The IT gap is <em>right here</em><br/>in Iowa</h2>
+    <p class="ssub rv">Iowa has one of the strongest nonprofit ecosystems in the Midwest — but most organizations still struggle with outdated IT and manual processes.</p>
+    <div class="iowa-grid">
+      <div class="iowa-card rv"><div class="iowa-num">32,836</div><div class="iowa-ttl">Nonprofits in Iowa</div><p class="iowa-desc">Iowa is home to over 32,000 registered nonprofits — including 18,671 charitable 501(c)(3)s — employing nearly <strong>239,000 people</strong> statewide.</p></div>
+      <div class="iowa-card rv"><div class="iowa-num">$34B+</div><div class="iowa-ttl">Annual Revenue</div><p class="iowa-desc">Iowa nonprofits generate over $34 billion in annual revenue — yet most small and mid-size organizations still run on spreadsheets and paper forms.</p></div>
+      <div class="iowa-card rv"><div class="iowa-num">42%</div><div class="iowa-ttl">List Digital Transformation as a Top Priority</div><p class="iowa-desc">42% of nonprofit leaders cite digital transformation as a top-3 goal — but lack the technical support to act on it. (BDO Nonprofit Survey)</p></div>
+      <div class="iowa-card rv"><div class="iowa-num">16 hrs</div><div class="iowa-ttl">Lost to Manual Admin Work Per Week</div><p class="iowa-desc">Nonprofit staff lose an average of 16 hours every week to manual administrative tasks — the equivalent of two full workdays that could serve the community.</p></div>
+      <div class="iowa-card rv"><div class="iowa-num">4×</div><div class="iowa-ttl">Mission Success for Tech-Enabled Orgs</div><p class="iowa-desc">Salesforce research shows nonprofits that are "digitally mature" are four times more likely to meet their mission goals than those using manual systems.</p></div>
+      <div class="iowa-card rv"><div class="iowa-num">59%</div><div class="iowa-ttl">Ready to Invest — But Need Guidance</div><p class="iowa-desc">59% of nonprofits are prepared to increase technology spending — but without structured support, most don't know where to start. That's where MpowerNPO steps in.</p></div>
+    </div>
+    <div class="iowa-box rv">
+      <span>💡</span>
+      <div><strong>The opportunity is clear.</strong> Iowa has thousands of nonprofits doing critical work — and an entire generation of students with coding skills who've never applied them to a real community IT need. MpowerNPO bridges that gap, one request at a time.</div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider"/>
+
+<!-- FOUNDER -->
+<section id="founder" style="background:var(--bg2)">
+  <div class="inner">
+    <span class="slabel rv">Meet the Founder</span>
+    <div class="finner rv">
+      <div class="favatar">
+        <div class="favatar-bg"></div>
+        <span class="favatar-letter">M</span>
+      </div>
+      <div>
+        <h2 class="fname">Mayank Bhatt</h2>
+        <p class="ftitle">Founder &amp; Youth Leader · MpowerNPO · Johnston Middle School, 9th Grade</p>
+        <p class="fbio">Mayank started MpowerNPO with a straightforward observation: students were learning to code in classrooms, and nonprofits were struggling with the same IT problems year after year — and the two groups never talked to each other. MpowerNPO is his answer to that gap. A structured initiative where technology education is applied, responsible, and measurable.</p>
+        <div class="chips">
+          <span class="chip">AI &amp; Technology</span>
+          <span class="chip">Community Impact</span>
+          <span class="chip">Youth Leadership</span>
+          <span class="chip">Civic Responsibility</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider"/>
+
+<!-- CONTACT -->
+<section id="contact" style="background:var(--bg)">
+  <div class="inner">
+    <span class="slabel rv">Get In Touch</span>
+    <h2 class="stitle rv">Submit a <em>Request</em><br/>or join our team</h2>
+    <p class="ssub rv">Whether you're a nonprofit with an IT need or a student ready to build something that matters — fill out the form and we'll be in touch.</p>
+    <div class="cgrid rv">
+      <div class="cform">
+        <div class="ctabs">
+          <button class="ctab on" onclick="switchTab(this,'np')">I'm a Nonprofit</button>
+          <button class="ctab" onclick="switchTab(this,'st')">I'm a Student</button>
+          <button class="ctab" onclick="switchTab(this,'mt')">I'm a Mentor</button>
+        </div>
+        <div class="cpanel" id="pnp">
+          <div class="fg"><label>Organization Name</label><input type="text" placeholder="e.g. Des Moines Food Bank"/></div>
+          <div class="fg"><label>Contact Name</label><input type="text" placeholder="Your name"/></div>
+          <div class="fg"><label>Email Address</label><input type="email" placeholder="you@organization.org"/></div>
+          <div class="fg"><label>Describe Your IT Need</label><textarea rows="4" placeholder="e.g. We track volunteers in a spreadsheet and it takes hours. We need a better system."></textarea></div>
+          <div class="fg"><label>Urgency (1 = low, 5 = critical)</label><div class="urow"><input type="range" min="1" max="5" value="3" oninput="this.nextElementSibling.textContent=this.value"/><span class="uval">3</span></div></div>
+          <button class="btn" style="width:100%;border:none" onclick="submitForm(this)">Submit IT Request →</button>
+        </div>
+        <div class="cpanel hide" id="pst">
+          <div class="fg"><label>Full Name</label><input type="text" placeholder="Your name"/></div>
+          <div class="fg"><label>School &amp; Grade</label><input type="text" placeholder="e.g. Johnston Middle School, 9th Grade"/></div>
+          <div class="fg"><label>Email Address</label><input type="email" placeholder="you@school.edu"/></div>
+          <div class="fg"><label>Your Coding Skills</label><div class="cbs"><label class="cb"><input type="checkbox"/> Python</label><label class="cb"><input type="checkbox"/> JavaScript</label><label class="cb"><input type="checkbox"/> React</label><label class="cb"><input type="checkbox"/> SQL / Databases</label><label class="cb"><input type="checkbox"/> Other</label></div></div>
+          <div class="fg"><label>Why do you want to join MpowerNPO?</label><textarea rows="3" placeholder="Tell us what drives you..."></textarea></div>
+          <button class="btn" style="width:100%;border:none" onclick="submitForm(this)">Apply to Join →</button>
+        </div>
+        <div class="cpanel hide" id="pmt">
+          <div class="fg"><label>Full Name</label><input type="text" placeholder="Your name"/></div>
+          <div class="fg"><label>Professional Background</label><input type="text" placeholder="e.g. Software Engineer, 8 years exp."/></div>
+          <div class="fg"><label>Email Address</label><input type="email" placeholder="you@company.com"/></div>
+          <div class="fg"><label>Areas of Expertise</label><div class="cbs"><label class="cb"><input type="checkbox"/> Web Development</label><label class="cb"><input type="checkbox"/> Data &amp; Analytics</label><label class="cb"><input type="checkbox"/> Project Management</label><label class="cb"><input type="checkbox"/> AI &amp; Automation</label><label class="cb"><input type="checkbox"/> UI/UX Design</label></div></div>
+          <div class="fg"><label>Hours available per month</label><input type="text" placeholder="e.g. 4–6 hours"/></div>
+          <button class="btn" style="width:100%;border:none" onclick="submitForm(this)">Volunteer as Mentor →</button>
+        </div>
+      </div>
+      <div class="cinfo">
+        <div class="cicard"><div class="ciico">✉️</div><div><div class="cilbl">Email Us</div><div class="cival"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7d15181111123d100d120a180f130d1253120f1a">[email&#160;protected]</a></div></div></div>
+        <div class="cicard"><div class="ciico">📍</div><div><div class="cilbl">Based In</div><div class="cival">Johnston, Iowa</div></div></div>
+        <div class="cicard"><div class="ciico">🎓</div><div><div class="cilbl">School</div><div class="cival">Johnston Middle School</div></div></div>
+        <div class="cquote"><p>"Technology education should be applied, responsible, and measurable. MpowerNPO is designed to make that possible."</p><small>— Mayank Bhatt, Founder &amp; Youth Leader</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="flogo">Mpower<span>NPO</span></div>
+  <p class="fnote">© 2025 MpowerNPO · Founded by Mayank Bhatt · Johnston Middle School</p>
+  <p class="fnote">AI-Powered Youth Strengthening Local Nonprofits</p>
+</footer>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  // No scroll hiding - everything visible
+
+  // Tab switching
+  function switchTab(btn, id) {
+    document.querySelectorAll('.ctab').forEach(b => b.classList.remove('on'));
+    document.querySelectorAll('.cpanel').forEach(p => p.classList.add('hide'));
+    btn.classList.add('on');
+    document.getElementById('p' + id).classList.remove('hide');
+  }
+
+  // Form submit
+  function submitForm(btn) {
+    btn.closest('.cpanel').innerHTML = '<div class="fsuccess"><span>✅</span><p>Thank you! We\'ll be in touch soon.</p><small>— The MpowerNP
