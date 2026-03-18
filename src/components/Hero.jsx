@@ -1,3 +1,10 @@
+const heroStats = [
+  { num: '32,836', label: 'Nonprofits in Iowa' },
+  { num: '42%', label: 'Cite digital transformation as a top priority' },
+  { num: '16 hrs', label: 'Lost to manual admin work per week' },
+  { num: '4×', label: 'More likely to meet mission goals with tech' },
+]
+
 export default function Hero() {
   return (
     <section id="hero">
@@ -17,14 +24,19 @@ export default function Hero() {
               <a href="#contact" className="btn-out">Submit a Request →</a>
             </div>
           </div>
-          <div className="hero-image">
-            <img src="/empower.webp" alt="Empowering nonprofits" />
+          <div className="hero-statpanel">
+            {heroStats.map(s => (
+              <div className="hero-statcard" key={s.num}>
+                <div className="hero-statnum">{s.num}</div>
+                <div className="hero-statlbl">{s.label}</div>
+              </div>
+            ))}
           </div>
         </div>
         <div className="hero-stats">
           <div className="hstat"><div className="hnum">6</div><div className="hlbl">Step Process</div></div>
-          <div className="hstat"><div className="hnum">32K+</div><div className="hlbl">Iowa Nonprofits</div></div>
           <div className="hstat"><div className="hnum">100%</div><div className="hlbl">Mentor Reviewed</div></div>
+          <div className="hstat"><div className="hnum">0$</div><div className="hlbl">Cost to Nonprofits</div></div>
         </div>
       </div>
     </section>
