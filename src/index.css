@@ -32,7 +32,12 @@ nav.site-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; display
 .orb2 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(232,160,32,0.1) 0%, transparent 70%); bottom: 0; left: -80px; animation: f2 10s ease-in-out infinite; }
 @keyframes f1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-30px,30px)} }
 @keyframes f2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(20px,-20px)} }
-.hero-inner { position: relative; z-index: 1; max-width: 780px; }
+.hero-inner { position: relative; z-index: 1; max-width: 1100px; }
+.hero-content { display: flex; align-items: center; gap: 3rem; }
+.hero-text { flex: 1; }
+.hero-image { flex: 1; display: flex; justify-content: center; }
+.hero-image img { width: 100%; max-width: 460px; border-radius: 1rem; object-fit: cover; animation: up 0.8s 0.4s ease both; }
+@media (max-width: 768px) { .hero-content { flex-direction: column; } .hero-image { width: 100%; } }
 .pill { display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(26,58,143,0.07); border: 1px solid var(--border); padding: 0.4rem 1rem; border-radius: 100px; font-size: 0.8rem; font-weight: 500; color: var(--blue-lt); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 2rem; animation: up 0.8s ease both; }
 .pill::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--gold); display:inline-block; }
 h1 { font-family: 'Playfair Display', serif; font-size: clamp(3rem,6vw,5.5rem); font-weight: 900; line-height: 1.05; letter-spacing: -0.03em; animation: up 0.8s 0.15s ease both; }
