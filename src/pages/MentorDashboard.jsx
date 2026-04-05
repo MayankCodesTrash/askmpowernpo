@@ -6,7 +6,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { db } from '../firebase'
-import ProjectChat from '../components/ProjectChat'
+import ChatTab from '../components/ChatTab'
 
 const LINK_TYPES = ['GitHub', 'Google Drive', 'Figma', 'Replit', 'Google Slides', 'Other']
 const LINK_ICONS = {
@@ -171,9 +171,8 @@ function ManageYouthCoders({ project, allYouthUsers }) {
 }
 
 // ── Mentor Project Card ───────────────────────────────────────────────────────
-function MentorProjectCard({ project, userEmail, allYouthUsers, currentProfile }) {
+function MentorProjectCard({ project, userEmail, allYouthUsers }) {
   const [updatingStatus, setUpdatingStatus] = useState(false)
-  const { user } = useAuth()
 
   const handleStatusChange = async (newStatus) => {
     if (!db) return
@@ -229,8 +228,6 @@ function MentorProjectCard({ project, userEmail, allYouthUsers, currentProfile }
 
       <div className="proj-divider" />
       <ProjectLinks project={project} userEmail={userEmail} />
-      <div className="proj-divider" />
-      <ProjectChat project={project} currentUser={user} currentProfile={currentProfile} />
     </div>
   )
 }
@@ -481,6 +478,9 @@ export default function MentorDashboard() {
           <button className={`dash-nav-item${tab === 'projects' ? ' active' : ''}`} onClick={() => setTab('projects')}>
             <span className="dico">📁</span> Projects
           </button>
+          <button className={`dash-nav-item${tab === 'chat' ? ' active' : ''}`} onClick={() => setTab('chat')}>
+            <span className="dico">💬</span> Chat
+          </button>
           <button className={`dash-nav-item${tab === 'settings' ? ' active' : ''}`} onClick={() => setTab('settings')}>
             <span className="dico">⚙️</span> Settings
           </button>
@@ -561,10 +561,20 @@ export default function MentorDashboard() {
                   project={proj}
                   userEmail={user.email}
                   allYouthUsers={youthUsers}
-                  currentProfile={profile}
                 />
               ))}
             </div>
+          </>
+        )}
+
+        {/* CHAT TAB */}
+        {tab === 'chat' && (
+          <>
+            <div className="dash-header">
+              <h1 className="dash-title">Team Chat</h1>
+              <p className="dash-subtitle">Chat with your youth coders on each project</p>
+            </div>
+            <ChatTab projects={projects} currentUser={user} currentProfile={profile} />
           </>
         )}
 

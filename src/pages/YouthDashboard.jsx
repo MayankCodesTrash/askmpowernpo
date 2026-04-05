@@ -6,7 +6,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { db } from '../firebase'
-import ProjectChat from '../components/ProjectChat'
+import ChatTab from '../components/ChatTab'
 
 const STATUS_LABELS = {
   planning: 'Planning',
@@ -99,8 +99,7 @@ function ProjectLinks({ project, userEmail }) {
 }
 
 // ── Project Card ──────────────────────────────────────────────────────────────
-function ProjectCard({ project, userEmail, userId, currentProfile }) {
-  const { user } = useAuth()
+function ProjectCard({ project, userEmail, userId }) {
 
   // Normalize youth coders list (handles both old and new format)
   const youthList = (project.youthCoders && project.youthCoders.length > 0)
@@ -160,8 +159,6 @@ function ProjectCard({ project, userEmail, userId, currentProfile }) {
 
       <div className="proj-divider" />
       <ProjectLinks project={project} userEmail={userEmail} />
-      <div className="proj-divider" />
-      <ProjectChat project={project} currentUser={user} currentProfile={currentProfile} />
     </div>
   )
 }
@@ -257,6 +254,9 @@ export default function YouthDashboard() {
           <button className={`dash-nav-item${tab === 'projects' ? ' active' : ''}`} onClick={() => setTab('projects')}>
             <span className="dico">📁</span> My Projects
           </button>
+          <button className={`dash-nav-item${tab === 'chat' ? ' active' : ''}`} onClick={() => setTab('chat')}>
+            <span className="dico">💬</span> Chat
+          </button>
           <button className={`dash-nav-item${tab === 'settings' ? ' active' : ''}`} onClick={() => setTab('settings')}>
             <span className="dico">⚙️</span> Settings
           </button>
@@ -304,10 +304,20 @@ export default function YouthDashboard() {
                   project={proj}
                   userEmail={user.email}
                   userId={user.uid}
-                  currentProfile={profile}
                 />
               ))}
             </div>
+          </>
+        )}
+
+        {/* CHAT TAB */}
+        {tab === 'chat' && (
+          <>
+            <div className="dash-header">
+              <h1 className="dash-title">Team Chat</h1>
+              <p className="dash-subtitle">Chat with your mentor and teammates on each project</p>
+            </div>
+            <ChatTab projects={projects} currentUser={user} currentProfile={profile} />
           </>
         )}
 

@@ -8,7 +8,7 @@ import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { db, firebaseConfig } from '../firebase'
-import ProjectChat from '../components/ProjectChat'
+import ChatTab from '../components/ChatTab'
 
 // Creates a Firebase Auth user without logging out the admin
 async function createAuthUser(email, password) {
@@ -662,6 +662,9 @@ export default function AdminDashboard() {
           <button className={`dash-nav-item${tab === 'projects' ? ' active' : ''}`} onClick={() => setTab('projects')}>
             <span className="dico">📁</span> Projects
           </button>
+          <button className={`dash-nav-item${tab === 'chat' ? ' active' : ''}`} onClick={() => setTab('chat')}>
+            <span className="dico">💬</span> Chat
+          </button>
           <button className={`dash-nav-item${tab === 'users' ? ' active' : ''}`} onClick={() => setTab('users')}>
             <span className="dico">👤</span> Add Member
           </button>
@@ -774,11 +777,20 @@ export default function AdminDashboard() {
                   </div>
                   <div className="proj-divider" />
                   <ProjectLinks project={proj} />
-                  <div className="proj-divider" />
-                  <ProjectChat project={proj} currentUser={user} currentProfile={profile} />
                 </div>
               ))}
             </div>
+          </>
+        )}
+
+        {/* ── CHAT ── */}
+        {tab === 'chat' && (
+          <>
+            <div className="dash-header">
+              <h1 className="dash-title">All Project Chats</h1>
+              <p className="dash-subtitle">Oversee all project conversations across every team</p>
+            </div>
+            <ChatTab projects={projects} currentUser={user} currentProfile={profile} />
           </>
         )}
 
