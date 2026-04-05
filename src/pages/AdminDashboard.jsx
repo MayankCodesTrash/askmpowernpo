@@ -8,6 +8,7 @@ import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { db, firebaseConfig } from '../firebase'
+import ProjectChat from '../components/ProjectChat'
 
 // Creates a Firebase Auth user without logging out the admin
 async function createAuthUser(email, password) {
@@ -73,7 +74,7 @@ function ProjectLinks({ project }) {
   )
 }
 
-// Opens Gmail compose with credentials pre-filled — no third-party service needed
+// Opens Gmail compose with credentials pre-filled
 function openCredentialsEmail(toEmail, name, role) {
   const subject = encodeURIComponent('Welcome to MpowerNPO — Your Login Credentials')
   const body = encodeURIComponent(
@@ -96,11 +97,102 @@ const SKILL_COLORS = {
   advanced: { bg: 'rgba(39,174,96,0.12)', color: '#1e7e50' },
 }
 
+// ── Manage Youth Coders (admin version) ───────────────────────────────────────
+function ManageYouthCoders({ project, allYouthUsers }) {
+  const [showPicker, setShowPicker] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  const youthList = (project.youthCoders && project.youthCoders.length > 0)
+    ? project.youthCoders
+    : (project.youthCoderEmail
+        ? [{ id: project.youthCoderId || '', email: project.youthCoderEmail, name: project.youthCoderName || '' }]
+        : [])
+
+  const youthIds = youthList.map(y => y.id).filter(Boolean)
+
+  const addYouth = async (youthUser) => {
+    if (youthIds.includes(youthUser.id)) return
+    setSaving(true)
+    const newList = [...youthList, { id: youthUser.id, email: youthUser.email, name: youthUser.name || '' }]
+    const newIds = newList.map(y => y.id).filter(Boolean)
+    try {
+      await updateDoc(doc(db, 'projects', project.id), {
+        youthCoders: newList,
+        youthCoderIds: newIds,
+        youthCoderId: newList[0]?.id || '',
+        youthCoderEmail: newList[0]?.email || '',
+        youthCoderName: newList[0]?.name || '',
+        updatedAt: serverTimestamp(),
+      })
+    } catch { /* ignore */ }
+    setSaving(false)
+    setShowPicker(false)
+  }
+
+  const removeYouth = async (youthId) => {
+    const newList = youthList.filter(y => y.id !== youthId)
+    const newIds = newList.map(y => y.id).filter(Boolean)
+    try {
+      await updateDoc(doc(db, 'projects', project.id), {
+        youthCoders: newList,
+        youthCoderIds: newIds,
+        youthCoderId: newList[0]?.id || '',
+        youthCoderEmail: newList[0]?.email || '',
+        youthCoderName: newList[0]?.name || '',
+        updatedAt: serverTimestamp(),
+      })
+    } catch { /* ignore */ }
+  }
+
+  const available = allYouthUsers.filter(u => !youthIds.includes(u.id))
+
+  return (
+    <div>
+      {youthList.length === 0 ? (
+        <span style={{ fontSize: '0.82rem', color: '#c0392b' }}>Not assigned</span>
+      ) : (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.4rem' }}>
+          {youthList.map((y, i) => (
+            <span key={y.id || y.email || i} className="youth-tag">
+              {y.name || y.email}
+              <button className="youth-tag-remove" onClick={() => removeYouth(y.id)} title="Remove">×</button>
+            </span>
+          ))}
+        </div>
+      )}
+      {available.length > 0 && (
+        <div style={{ position: 'relative' }}>
+          <button className="add-youth-btn" onClick={() => setShowPicker(p => !p)} disabled={saving}>
+            + Add Youth Coder
+          </button>
+          {showPicker && (
+            <div className="youth-picker-dropdown">
+              <div className="youth-picker-header">Available Youth Coders</div>
+              {available.map(u => (
+                <button key={u.id} className="youth-picker-item" onClick={() => addYouth(u)}>
+                  <div className="dash-avatar" style={{ width: 26, height: 26, fontSize: '0.72rem', borderRadius: 7, flexShrink: 0 }}>
+                    {(u.name || u.email).charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="youth-picker-name">{u.name || 'Unnamed'}</div>
+                    <div className="youth-picker-email">{u.email}</div>
+                  </div>
+                  <span style={{ color: 'var(--blue)', fontSize: '0.75rem', fontWeight: 600 }}>+ Add</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Application Card ──────────────────────────────────────────────────────────
 function ApplicationCard({ app, onApprove, onReject }) {
   const [expanded, setExpanded] = useState(false)
   const [approving, setApproving] = useState(false)
-  const [approveResult, setApproveResult] = useState(null) // { password } or { error }
+  const [approveResult, setApproveResult] = useState(null)
   const isYouth = app.type === 'youth'
   const skillStyle = SKILL_COLORS[app.skillLevel] || SKILL_COLORS.beginner
 
@@ -143,7 +235,6 @@ function ApplicationCard({ app, onApprove, onReject }) {
         </div>
       </div>
 
-      {/* Approve result banner */}
       {approveResult && (
         <div style={{ marginTop: '0.75rem', padding: '0.75rem 1rem', borderRadius: 10, background: approveResult.error ? 'rgba(192,57,43,0.07)' : 'rgba(39,174,96,0.08)', border: `1px solid ${approveResult.error ? 'rgba(192,57,43,0.2)' : 'rgba(39,174,96,0.25)'}` }}>
           {approveResult.error ? (
@@ -204,17 +295,11 @@ function Row({ label, value }) {
   )
 }
 
-// ── Create User Modal (fully automated) ──────────────────────────────────────
-function CreateUserModal({ prefill, onClose }) {
+// ── Create User Modal ─────────────────────────────────────────────────────────
+function CreateUserModal({ onClose }) {
   const [form, setForm] = useState({
-    name: prefill?.name || '',
-    email: prefill?.email || '',
-    password: '',
-    role: prefill?.type === 'mentor' ? 'mentor' : 'youth',
-    school: prefill?.school || '',
-    grade: '',
-    background: prefill?.background || '',
-    expertise: Array.isArray(prefill?.expertise) ? prefill.expertise.join(', ') : '',
+    name: '', email: '', password: '', role: 'youth',
+    school: '', grade: '', background: '', expertise: '',
   })
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
@@ -322,15 +407,30 @@ function CreateUserModal({ prefill, onClose }) {
 }
 
 // ── Create Project Modal ──────────────────────────────────────────────────────
-function CreateProjectModal({ mentors, onClose }) {
+function CreateProjectModal({ mentors, youthUsers, onClose }) {
   const [form, setForm] = useState({
     title: '', description: '', organization: '', orgContact: '',
     mentorId: '', status: 'planning',
   })
+  const [selectedYouth, setSelectedYouth] = useState([])
+  const [youthSearch, setYouthSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const set = (f) => (e) => setForm(p => ({ ...p, [f]: e.target.value }))
+
+  const toggleYouth = (u) => {
+    setSelectedYouth(prev => {
+      const exists = prev.find(y => y.id === u.id)
+      return exists ? prev.filter(y => y.id !== u.id) : [...prev, u]
+    })
+  }
+
+  const filteredYouth = youthUsers.filter(u =>
+    youthSearch === '' ||
+    (u.name || '').toLowerCase().includes(youthSearch.toLowerCase()) ||
+    u.email.toLowerCase().includes(youthSearch.toLowerCase())
+  )
 
   const handleCreate = async () => {
     if (!form.title || !form.organization || !form.mentorId) {
@@ -341,6 +441,8 @@ function CreateProjectModal({ mentors, onClose }) {
     setError('')
     try {
       const mentor = mentors.find(m => m.id === form.mentorId)
+      const youthCoders = selectedYouth.map(u => ({ id: u.id, email: u.email, name: u.name || '' }))
+      const youthCoderIds = youthCoders.map(y => y.id)
       await addDoc(collection(db, 'projects'), {
         title: form.title.trim(),
         description: form.description.trim(),
@@ -349,9 +451,11 @@ function CreateProjectModal({ mentors, onClose }) {
         mentorId: mentor.id,
         mentorEmail: mentor.email,
         mentorName: mentor.name,
-        youthCoderId: '',
-        youthCoderEmail: '',
-        youthCoderName: '',
+        youthCoders,
+        youthCoderIds,
+        youthCoderId: youthCoders[0]?.id || '',
+        youthCoderEmail: youthCoders[0]?.email || '',
+        youthCoderName: youthCoders[0]?.name || '',
         status: form.status,
         links: [],
         createdAt: serverTimestamp(),
@@ -383,6 +487,56 @@ function CreateProjectModal({ mentors, onClose }) {
             {mentors.map(m => <option key={m.id} value={m.id}>{m.name} ({m.email})</option>)}
           </select>
         </div>
+
+        {/* Youth Coder Picker */}
+        <div className="fg" style={{ marginBottom: '0.75rem' }}>
+          <label>Assign Youth Coders</label>
+          {selectedYouth.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.5rem' }}>
+              {selectedYouth.map(u => (
+                <span key={u.id} className="youth-tag">
+                  {u.name || u.email}
+                  <button className="youth-tag-remove" onClick={() => toggleYouth(u)}>×</button>
+                </span>
+              ))}
+            </div>
+          )}
+          {youthUsers.length > 0 ? (
+            <div className="youth-modal-picker">
+              <input
+                className="youth-picker-search"
+                type="text"
+                placeholder="Search youth coders…"
+                value={youthSearch}
+                onChange={e => setYouthSearch(e.target.value)}
+              />
+              <div className="youth-modal-list">
+                {filteredYouth.length === 0 && (
+                  <div style={{ padding: '0.75rem', fontSize: '0.82rem', color: 'var(--muted)', textAlign: 'center' }}>No results</div>
+                )}
+                {filteredYouth.map(u => {
+                  const checked = !!selectedYouth.find(y => y.id === u.id)
+                  return (
+                    <label key={u.id} className={`youth-modal-item${checked ? ' selected' : ''}`}>
+                      <input type="checkbox" checked={checked} onChange={() => toggleYouth(u)} style={{ display: 'none' }} />
+                      <div className="dash-avatar" style={{ width: 28, height: 28, fontSize: '0.75rem', borderRadius: 8, flexShrink: 0 }}>
+                        {(u.name || u.email).charAt(0).toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text)' }}>{u.name || 'Unnamed'}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{u.email}</div>
+                      </div>
+                      {checked && <span style={{ color: 'var(--blue)', fontSize: '0.85rem' }}>✓</span>}
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          ) : (
+            <p style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>No youth coders registered yet.</p>
+          )}
+        </div>
+
         <div className="fg" style={{ marginBottom: '0.75rem' }}>
           <label>Organization *</label>
           <input type="text" placeholder="e.g. Des Moines Food Bank" value={form.organization} onChange={set('organization')} />
@@ -417,10 +571,12 @@ export default function AdminDashboard() {
   const [applications, setApplications] = useState([])
   const [projects, setProjects] = useState([])
   const [mentors, setMentors] = useState([])
+  const [youthUsers, setYouthUsers] = useState([])
   const [appsLoading, setAppsLoading] = useState(true)
   const [projLoading, setProjLoading] = useState(true)
   const [filter, setFilter] = useState('pending')
   const [createProjectModal, setCreateProjectModal] = useState(false)
+  const [createUserModal, setCreateUserModal] = useState(false)
 
   useEffect(() => {
     if (!db) { setAppsLoading(false); setProjLoading(false); return }
@@ -430,18 +586,17 @@ export default function AdminDashboard() {
     const unsubProj = onSnapshot(query(collection(db, 'projects'), orderBy('createdAt', 'desc')),
       snap => { setProjects(snap.docs.map(d => ({ id: d.id, ...d.data() }))); setProjLoading(false) },
       () => setProjLoading(false))
-    // Fetch mentors once
+    // Fetch mentors and youth coders
     getDocs(query(collection(db, 'users'), where('role', '==', 'mentor')))
       .then(snap => setMentors(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+    getDocs(query(collection(db, 'users'), where('role', '==', 'youth')))
+      .then(snap => setYouthUsers(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
     return () => { unsubApps(); unsubProj() }
   }, [])
 
   const handleApprove = async (app) => {
     try {
-      // 1. Create Firebase Auth account with fixed default password
       const uid = await createAuthUser(app.email, DEFAULT_PASSWORD)
-
-      // 2. Create Firestore user profile from application data
       const role = app.type === 'mentor' ? 'mentor' : 'youth'
       await setDoc(doc(db, 'users', uid), {
         name: app.name,
@@ -451,13 +606,13 @@ export default function AdminDashboard() {
         ...(role === 'mentor' ? { background: app.background || '', expertise: app.expertise || [] } : {}),
         createdAt: serverTimestamp(),
       })
-
-      // 3. Mark application as approved
       await updateDoc(doc(db, 'applications', app.id), { status: 'approved', approvedAt: serverTimestamp() })
-
-      // 4. Open pre-filled Gmail compose window
       openCredentialsEmail(app.email, app.name, role)
-
+      // Refresh youth users if a youth was approved
+      if (role === 'youth') {
+        getDocs(query(collection(db, 'users'), where('role', '==', 'youth')))
+          .then(snap => setYouthUsers(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+      }
       return { success: true, role }
     } catch (err) {
       const msg = err.code === 'auth/email-already-in-use'
@@ -466,6 +621,7 @@ export default function AdminDashboard() {
       return { error: msg }
     }
   }
+
   const handleReject = async (id) => { await updateDoc(doc(db, 'applications', id), { status: 'rejected' }) }
   const handleLogout = async () => { await logout(); navigate('/', { replace: true }) }
 
@@ -510,6 +666,30 @@ export default function AdminDashboard() {
             <span className="dico">👤</span> Add Member
           </button>
         </div>
+
+        {/* Available youth coders overview */}
+        {youthUsers.length > 0 && (
+          <div style={{ marginTop: '1rem', padding: '0.8rem', background: 'var(--bg2)', borderRadius: 10, border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--muted)', marginBottom: '0.5rem' }}>
+              Youth Coders ({youthUsers.length})
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+              {youthUsers.slice(0, 5).map(u => (
+                <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <div className="dash-avatar" style={{ width: 22, height: 22, fontSize: '0.6rem', borderRadius: 6, flexShrink: 0 }}>
+                    {(u.name || u.email).charAt(0).toUpperCase()}
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {u.name || u.email}
+                  </span>
+                </div>
+              ))}
+              {youthUsers.length > 5 && (
+                <span style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>+{youthUsers.length - 5} more</span>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="dash-signout">
           <button onClick={handleLogout}>Sign Out</button>
@@ -582,10 +762,10 @@ export default function AdminDashboard() {
                       <span className="proj-meta-value">{proj.mentorName || '—'} {proj.mentorEmail ? `· ${proj.mentorEmail}` : ''}</span>
                     </div>
                     <div className="proj-meta-row">
-                      <span className="proj-meta-label">Youth Coder</span>
-                      <span className="proj-meta-value" style={{ color: proj.youthCoderEmail ? 'var(--muted)' : '#c0392b' }}>
-                        {proj.youthCoderName || (proj.youthCoderEmail ? proj.youthCoderEmail : 'Not assigned yet')}
-                      </span>
+                      <span className="proj-meta-label">Youth</span>
+                      <div style={{ flex: 1 }}>
+                        <ManageYouthCoders project={proj} allYouthUsers={youthUsers} />
+                      </div>
                     </div>
                     <div className="proj-meta-row">
                       <span className="proj-meta-label">Org</span>
@@ -594,6 +774,8 @@ export default function AdminDashboard() {
                   </div>
                   <div className="proj-divider" />
                   <ProjectLinks project={proj} />
+                  <div className="proj-divider" />
+                  <ProjectChat project={proj} currentUser={user} currentProfile={profile} />
                 </div>
               ))}
             </div>
@@ -611,7 +793,7 @@ export default function AdminDashboard() {
               <p style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '1.2rem', lineHeight: 1.7 }}>
                 Fill in their name, email, role, and a temporary password — the account is created instantly. Email them their credentials and they can sign in at <strong>/login</strong>.
               </p>
-              <button className="dash-add-btn" style={{ borderRadius: 10 }} onClick={() => setCreateUserModal({})}>
+              <button className="dash-add-btn" style={{ borderRadius: 10 }} onClick={() => setCreateUserModal(true)}>
                 + Create Account
               </button>
             </div>
@@ -620,7 +802,14 @@ export default function AdminDashboard() {
       </main>
 
       {createProjectModal && (
-        <CreateProjectModal mentors={mentors} onClose={() => setCreateProjectModal(false)} />
+        <CreateProjectModal
+          mentors={mentors}
+          youthUsers={youthUsers}
+          onClose={() => setCreateProjectModal(false)}
+        />
+      )}
+      {createUserModal && (
+        <CreateUserModal onClose={() => setCreateUserModal(false)} />
       )}
     </div>
   )

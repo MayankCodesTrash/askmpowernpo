@@ -6,6 +6,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { db } from '../firebase'
+import ProjectChat from '../components/ProjectChat'
 
 const STATUS_LABELS = {
   planning: 'Planning',
@@ -15,7 +16,6 @@ const STATUS_LABELS = {
 }
 
 const LINK_TYPES = ['GitHub', 'Google Drive', 'Figma', 'Replit', 'Google Slides', 'Other']
-
 const LINK_ICONS = {
   GitHub: '🐙',
   'Google Drive': '📁',
@@ -23,6 +23,16 @@ const LINK_ICONS = {
   Replit: '💻',
   'Google Slides': '📊',
   Other: '🔗',
+}
+
+// Merge two project arrays, deduplicating by id
+function mergeProjects(a, b) {
+  const seen = new Set()
+  return [...a, ...b].filter(p => {
+    if (seen.has(p.id)) return false
+    seen.add(p.id)
+    return true
+  })
 }
 
 // ── Project Links ─────────────────────────────────────────────────────────────
@@ -40,12 +50,7 @@ function ProjectLinks({ project, userEmail }) {
     setAdding(true)
     try {
       await updateDoc(doc(db, 'projects', project.id), {
-        links: arrayUnion({
-          type,
-          url: url.trim(),
-          addedBy: userEmail,
-          addedAt: new Date().toISOString(),
-        }),
+        links: arrayUnion({ type, url: url.trim(), addedBy: userEmail, addedAt: new Date().toISOString() }),
       })
       setUrl('')
     } catch {
@@ -60,8 +65,6 @@ function ProjectLinks({ project, userEmail }) {
       <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text)', marginBottom: '0.6rem' }}>
         Project Links
       </div>
-
-      {/* Existing links */}
       {(project.links || []).length > 0 && (
         <div className="link-list">
           {project.links.map((l, i) => (
@@ -74,14 +77,8 @@ function ProjectLinks({ project, userEmail }) {
           ))}
         </div>
       )}
-
-      {/* Add new link */}
       <div className="link-add-row">
-        <select
-          className="link-type-select"
-          value={type}
-          onChange={e => setType(e.target.value)}
-        >
+        <select className="link-type-select" value={type} onChange={e => setType(e.target.value)}>
           {LINK_TYPES.map(t => <option key={t} value={t}>{LINK_ICONS[t]} {t}</option>)}
         </select>
         <input
@@ -102,7 +99,19 @@ function ProjectLinks({ project, userEmail }) {
 }
 
 // ── Project Card ──────────────────────────────────────────────────────────────
-function ProjectCard({ project, userEmail }) {
+function ProjectCard({ project, userEmail, userId, currentProfile }) {
+  const { user } = useAuth()
+
+  // Normalize youth coders list (handles both old and new format)
+  const youthList = (project.youthCoders && project.youthCoders.length > 0)
+    ? project.youthCoders
+    : (project.youthCoderEmail
+        ? [{ id: project.youthCoderId || '', email: project.youthCoderEmail, name: project.youthCoderName || '' }]
+        : [])
+
+  // Other youth coders on the project (teammates)
+  const teammates = youthList.filter(y => y.id !== userId && y.email !== userEmail)
+
   return (
     <div className="proj-card">
       <div className="proj-card-header">
@@ -125,6 +134,18 @@ function ProjectCard({ project, userEmail }) {
             {project.mentorEmail ? ` · ${project.mentorEmail}` : ''}
           </span>
         </div>
+        {teammates.length > 0 && (
+          <div className="proj-meta-row">
+            <span className="proj-meta-label">Team</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
+              {teammates.map((y, i) => (
+                <span key={y.id || y.email || i} className="youth-tag" style={{ cursor: 'default' }}>
+                  {y.name || y.email}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="proj-meta-row">
           <span className="proj-meta-label">Org</span>
           <span className="proj-meta-value">{project.organization || '—'}</span>
@@ -138,8 +159,9 @@ function ProjectCard({ project, userEmail }) {
       </div>
 
       <div className="proj-divider" />
-
       <ProjectLinks project={project} userEmail={userEmail} />
+      <div className="proj-divider" />
+      <ProjectChat project={project} currentUser={user} currentProfile={currentProfile} />
     </div>
   )
 }
@@ -157,12 +179,28 @@ export default function YouthDashboard() {
 
   useEffect(() => {
     if (!user || !db) { setProjectsLoading(false); return }
-    const q = query(collection(db, 'projects'), where('youthCoderEmail', '==', user.email))
-    const unsub = onSnapshot(q, (snap) => {
-      setProjects(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+
+    // Keep mutable refs for merging results from two queries
+    let p1 = []
+    let p2 = []
+
+    // Query 1: legacy format — project has this user's email in youthCoderEmail
+    const q1 = query(collection(db, 'projects'), where('youthCoderEmail', '==', user.email))
+    const unsub1 = onSnapshot(q1, snap => {
+      p1 = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      setProjects(mergeProjects(p1, p2))
       setProjectsLoading(false)
     }, () => setProjectsLoading(false))
-    return unsub
+
+    // Query 2: new multi-youth format — user's UID is in youthCoderIds array
+    const q2 = query(collection(db, 'projects'), where('youthCoderIds', 'array-contains', user.uid))
+    const unsub2 = onSnapshot(q2, snap => {
+      p2 = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      setProjects(mergeProjects(p1, p2))
+      setProjectsLoading(false)
+    }, () => setProjectsLoading(false))
+
+    return () => { unsub1(); unsub2() }
   }, [user])
 
   const handleLogout = async () => { await logout(); navigate('/', { replace: true }) }
@@ -261,7 +299,13 @@ export default function YouthDashboard() {
 
             <div className="proj-grid">
               {projects.map(proj => (
-                <ProjectCard key={proj.id} project={proj} userEmail={user.email} />
+                <ProjectCard
+                  key={proj.id}
+                  project={proj}
+                  userEmail={user.email}
+                  userId={user.uid}
+                  currentProfile={profile}
+                />
               ))}
             </div>
           </>

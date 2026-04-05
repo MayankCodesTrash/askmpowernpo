@@ -6,6 +6,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { db } from '../firebase'
+import ProjectChat from '../components/ProjectChat'
 
 const LINK_TYPES = ['GitHub', 'Google Drive', 'Figma', 'Replit', 'Google Slides', 'Other']
 const LINK_ICONS = {
@@ -16,6 +17,13 @@ const LINK_ICONS = {
   'Google Slides': '📊',
   Other: '🔗',
 }
+
+const STATUS_OPTIONS = [
+  { value: 'planning', label: 'Planning' },
+  { value: 'in-progress', label: 'In Progress' },
+  { value: 'review', label: 'In Review' },
+  { value: 'completed', label: 'Completed' },
+]
 
 // ── Project Links ─────────────────────────────────────────────────────────────
 function ProjectLinks({ project, userEmail }) {
@@ -36,7 +44,7 @@ function ProjectLinks({ project, userEmail }) {
       })
       setUrl('')
     } catch {
-      setError('Failed to save link. Please try again.')
+      setError('Failed to save link.')
     } finally {
       setAdding(false)
     }
@@ -70,76 +78,102 @@ function ProjectLinks({ project, userEmail }) {
   )
 }
 
-const STATUS_LABELS = {
-  planning: 'Planning',
-  'in-progress': 'In Progress',
-  review: 'In Review',
-  completed: 'Completed',
-}
-
-const STATUS_OPTIONS = [
-  { value: 'planning', label: 'Planning' },
-  { value: 'in-progress', label: 'In Progress' },
-  { value: 'review', label: 'In Review' },
-  { value: 'completed', label: 'Completed' },
-]
-
-
-// ── Assign Youth Coder Inline ─────────────────────────────────────────────────
-function AssignYouthInline({ projectId }) {
-  const [email, setEmail] = useState('')
+// ── Manage Youth Coders (multi-assign) ────────────────────────────────────────
+function ManageYouthCoders({ project, allYouthUsers }) {
+  const [showPicker, setShowPicker] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
 
-  const handleAssign = async () => {
-    if (!email.trim()) return
+  // Normalize: handle both new array format and legacy single-youth format
+  const youthList = (project.youthCoders && project.youthCoders.length > 0)
+    ? project.youthCoders
+    : (project.youthCoderEmail
+        ? [{ id: project.youthCoderId || '', email: project.youthCoderEmail, name: project.youthCoderName || '' }]
+        : [])
+
+  const youthIds = youthList.map(y => y.id).filter(Boolean)
+
+  const addYouth = async (youthUser) => {
+    if (youthIds.includes(youthUser.id)) return
     setSaving(true)
-    setError('')
+    const newList = [...youthList, { id: youthUser.id, email: youthUser.email, name: youthUser.name || '' }]
+    const newIds = newList.map(y => y.id).filter(Boolean)
     try {
-      // Look up youth coder by email
-      let name = ''
-      let uid = ''
-      const q = query(collection(db, 'users'), where('email', '==', email.trim().toLowerCase()), where('role', '==', 'youth'))
-      const snap = await getDocs(q)
-      if (!snap.empty) {
-        name = snap.docs[0].data().name || ''
-        uid = snap.docs[0].id
-      }
-      await updateDoc(doc(db, 'projects', projectId), {
-        youthCoderEmail: email.trim().toLowerCase(),
-        youthCoderName: name,
-        youthCoderId: uid,
+      await updateDoc(doc(db, 'projects', project.id), {
+        youthCoders: newList,
+        youthCoderIds: newIds,
+        youthCoderId: newList[0]?.id || '',
+        youthCoderEmail: newList[0]?.email || '',
+        youthCoderName: newList[0]?.name || '',
         updatedAt: serverTimestamp(),
       })
-    } catch {
-      setError('Failed to assign. Try again.')
-    }
+    } catch { /* ignore */ }
     setSaving(false)
+    setShowPicker(false)
   }
 
+  const removeYouth = async (youthId) => {
+    const newList = youthList.filter(y => y.id !== youthId)
+    const newIds = newList.map(y => y.id).filter(Boolean)
+    try {
+      await updateDoc(doc(db, 'projects', project.id), {
+        youthCoders: newList,
+        youthCoderIds: newIds,
+        youthCoderId: newList[0]?.id || '',
+        youthCoderEmail: newList[0]?.email || '',
+        youthCoderName: newList[0]?.name || '',
+        updatedAt: serverTimestamp(),
+      })
+    } catch { /* ignore */ }
+  }
+
+  const available = allYouthUsers.filter(u => !youthIds.includes(u.id))
+
   return (
-    <div style={{ flex: 1 }}>
-      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-        <input
-          type="email"
-          placeholder="student@email.com"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleAssign()}
-          style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '0.3rem 0.6rem', fontFamily: 'Outfit,sans-serif', fontSize: '0.8rem', color: 'var(--text)', background: 'var(--bg)', outline: 'none', flex: 1, minWidth: 0 }}
-        />
-        <button onClick={handleAssign} disabled={saving} style={{ padding: '0.3rem 0.7rem', background: 'var(--blue)', color: '#fff', border: 'none', borderRadius: 8, fontFamily: 'Outfit,sans-serif', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-          {saving ? '…' : 'Assign'}
-        </button>
-      </div>
-      {error && <p style={{ fontSize: '0.72rem', color: '#c0392b', marginTop: '0.2rem' }}>{error}</p>}
+    <div>
+      {youthList.length === 0 ? (
+        <span style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>No youth coders assigned</span>
+      ) : (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.45rem' }}>
+          {youthList.map((y, i) => (
+            <span key={y.id || y.email || i} className="youth-tag">
+              {y.name || y.email}
+              <button className="youth-tag-remove" onClick={() => removeYouth(y.id)} title="Remove">×</button>
+            </span>
+          ))}
+        </div>
+      )}
+      {available.length > 0 && (
+        <div style={{ position: 'relative' }}>
+          <button className="add-youth-btn" onClick={() => setShowPicker(p => !p)} disabled={saving}>
+            + Add Youth Coder
+          </button>
+          {showPicker && (
+            <div className="youth-picker-dropdown">
+              <div className="youth-picker-header">Available Youth Coders</div>
+              {available.map(u => (
+                <button key={u.id} className="youth-picker-item" onClick={() => addYouth(u)}>
+                  <div className="dash-avatar" style={{ width: 26, height: 26, fontSize: '0.72rem', borderRadius: 7, flexShrink: 0 }}>
+                    {(u.name || u.email).charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="youth-picker-name">{u.name || 'Unnamed'}</div>
+                    <div className="youth-picker-email">{u.email}</div>
+                  </div>
+                  <span style={{ color: 'var(--blue)', fontSize: '0.75rem', fontWeight: 600 }}>+ Add</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
 
 // ── Mentor Project Card ───────────────────────────────────────────────────────
-function MentorProjectCard({ project, userEmail }) {
+function MentorProjectCard({ project, userEmail, allYouthUsers, currentProfile }) {
   const [updatingStatus, setUpdatingStatus] = useState(false)
+  const { user } = useAuth()
 
   const handleStatusChange = async (newStatus) => {
     if (!db) return
@@ -177,11 +211,9 @@ function MentorProjectCard({ project, userEmail }) {
       <div className="proj-meta">
         <div className="proj-meta-row">
           <span className="proj-meta-label">Youth</span>
-          {project.youthCoderEmail ? (
-            <span className="proj-meta-value">{project.youthCoderName || project.youthCoderEmail} · {project.youthCoderEmail}</span>
-          ) : (
-            <AssignYouthInline projectId={project.id} />
-          )}
+          <div style={{ flex: 1 }}>
+            <ManageYouthCoders project={project} allYouthUsers={allYouthUsers} />
+          </div>
         </div>
         <div className="proj-meta-row">
           <span className="proj-meta-label">Org</span>
@@ -196,30 +228,45 @@ function MentorProjectCard({ project, userEmail }) {
       </div>
 
       <div className="proj-divider" />
-
       <ProjectLinks project={project} userEmail={userEmail} />
+      <div className="proj-divider" />
+      <ProjectChat project={project} currentUser={user} currentProfile={currentProfile} />
     </div>
   )
 }
 
 // ── Create Project Modal ──────────────────────────────────────────────────────
-function CreateProjectModal({ mentorEmail, mentorName, mentorId, onClose }) {
+function CreateProjectModal({ mentorEmail, mentorName, mentorId, onClose, youthUsers }) {
   const [form, setForm] = useState({
     title: '',
     description: '',
-    youthCoderEmail: '',
     organization: '',
     orgContact: '',
     status: 'planning',
   })
+  const [selectedYouth, setSelectedYouth] = useState([])
+  const [youthSearch, setYouthSearch] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const set = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }))
 
+  const toggleYouth = (u) => {
+    setSelectedYouth(prev => {
+      const exists = prev.find(y => y.id === u.id)
+      return exists ? prev.filter(y => y.id !== u.id) : [...prev, u]
+    })
+  }
+
+  const filteredYouth = youthUsers.filter(u =>
+    youthSearch === '' ||
+    (u.name || '').toLowerCase().includes(youthSearch.toLowerCase()) ||
+    u.email.toLowerCase().includes(youthSearch.toLowerCase())
+  )
+
   const handleCreate = async () => {
-    if (!form.title || !form.youthCoderEmail || !form.organization) {
-      setError('Please fill in Project Title, Youth Coder Email, and Organization.')
+    if (!form.title || !form.organization) {
+      setError('Please fill in Project Title and Organization.')
       return
     }
     if (!db) {
@@ -229,36 +276,29 @@ function CreateProjectModal({ mentorEmail, mentorName, mentorId, onClose }) {
     setLoading(true)
     setError('')
     try {
-      // Try to look up youth coder by email
-      let youthCoderName = ''
-      let youthCoderId = ''
-      try {
-        const q = query(collection(db, 'users'), where('email', '==', form.youthCoderEmail), where('role', '==', 'youth'))
-        const snap = await getDocs(q)
-        if (!snap.empty) {
-          youthCoderName = snap.docs[0].data().name || ''
-          youthCoderId = snap.docs[0].id
-        }
-      } catch { /* ignore lookup errors */ }
+      const youthCoders = selectedYouth.map(u => ({ id: u.id, email: u.email, name: u.name || '' }))
+      const youthCoderIds = youthCoders.map(y => y.id)
 
       await addDoc(collection(db, 'projects'), {
         title: form.title.trim(),
         description: form.description.trim(),
-        youthCoderEmail: form.youthCoderEmail.trim().toLowerCase(),
-        youthCoderName,
-        youthCoderId,
+        youthCoders,
+        youthCoderIds,
+        youthCoderId: youthCoders[0]?.id || '',
+        youthCoderEmail: youthCoders[0]?.email || '',
+        youthCoderName: youthCoders[0]?.name || '',
         mentorId,
         mentorEmail,
         mentorName,
         organization: form.organization.trim(),
         orgContact: form.orgContact.trim(),
         status: form.status,
-        files: [],
+        links: [],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
       onClose()
-    } catch (err) {
+    } catch {
       setError('Failed to create project. Please try again.')
     } finally {
       setLoading(false)
@@ -276,12 +316,59 @@ function CreateProjectModal({ mentorEmail, mentorName, mentorId, onClose }) {
         </div>
         <div className="fg" style={{ marginBottom: '1rem' }}>
           <label>Short Description</label>
-          <textarea rows={3} placeholder="Brief overview of what will be built…" value={form.description} onChange={set('description')} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '0.7rem 1rem', fontFamily: 'Outfit,sans-serif', fontSize: '0.9rem', color: 'var(--text)', background: 'var(--bg)', outline: 'none', resize: 'vertical', width: '100%' }} />
+          <textarea rows={3} placeholder="Brief overview of what will be built…" value={form.description} onChange={set('description')}
+            style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '0.7rem 1rem', fontFamily: 'Outfit,sans-serif', fontSize: '0.9rem', color: 'var(--text)', background: 'var(--bg)', outline: 'none', resize: 'vertical', width: '100%' }} />
         </div>
+
+        {/* Youth Coder Picker */}
         <div className="fg" style={{ marginBottom: '1rem' }}>
-          <label>Youth Coder Email *</label>
-          <input type="email" placeholder="student@example.com" value={form.youthCoderEmail} onChange={set('youthCoderEmail')} />
+          <label>Assign Youth Coders</label>
+          {selectedYouth.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.5rem' }}>
+              {selectedYouth.map(u => (
+                <span key={u.id} className="youth-tag">
+                  {u.name || u.email}
+                  <button className="youth-tag-remove" onClick={() => toggleYouth(u)}>×</button>
+                </span>
+              ))}
+            </div>
+          )}
+          {youthUsers.length > 0 ? (
+            <div className="youth-modal-picker">
+              <input
+                className="youth-picker-search"
+                type="text"
+                placeholder="Search youth coders…"
+                value={youthSearch}
+                onChange={e => setYouthSearch(e.target.value)}
+              />
+              <div className="youth-modal-list">
+                {filteredYouth.length === 0 && (
+                  <div style={{ padding: '0.75rem', fontSize: '0.82rem', color: 'var(--muted)', textAlign: 'center' }}>No results</div>
+                )}
+                {filteredYouth.map(u => {
+                  const checked = !!selectedYouth.find(y => y.id === u.id)
+                  return (
+                    <label key={u.id} className={`youth-modal-item${checked ? ' selected' : ''}`}>
+                      <input type="checkbox" checked={checked} onChange={() => toggleYouth(u)} style={{ display: 'none' }} />
+                      <div className="dash-avatar" style={{ width: 28, height: 28, fontSize: '0.75rem', borderRadius: 8, flexShrink: 0 }}>
+                        {(u.name || u.email).charAt(0).toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text)' }}>{u.name || 'Unnamed'}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{u.email}</div>
+                      </div>
+                      {checked && <span style={{ color: 'var(--blue)', fontSize: '0.85rem' }}>✓</span>}
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          ) : (
+            <p style={{ fontSize: '0.82rem', color: 'var(--muted)' }}>No youth coders registered yet.</p>
+          )}
         </div>
+
         <div className="fg" style={{ marginBottom: '1rem' }}>
           <label>Organization Name *</label>
           <input type="text" placeholder="e.g. Des Moines Food Bank" value={form.organization} onChange={set('organization')} />
@@ -317,6 +404,7 @@ export default function MentorDashboard() {
   const [tab, setTab] = useState('projects')
   const [projects, setProjects] = useState([])
   const [projectsLoading, setProjectsLoading] = useState(true)
+  const [youthUsers, setYouthUsers] = useState([])
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [name, setName] = useState(profile?.name || '')
   const [saved, setSaved] = useState(false)
@@ -332,6 +420,13 @@ export default function MentorDashboard() {
     return unsub
   }, [user])
 
+  // Load all youth coders for assignment picker
+  useEffect(() => {
+    if (!db) return
+    getDocs(query(collection(db, 'users'), where('role', '==', 'youth')))
+      .then(snap => setYouthUsers(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+  }, [])
+
   const handleLogout = async () => { await logout(); navigate('/', { replace: true }) }
 
   const handleSaveSettings = async () => {
@@ -344,14 +439,6 @@ export default function MentorDashboard() {
     } catch { /* ignore */ }
     setSaveLoading(false)
   }
-
-  // Group projects by youth coder email
-  const grouped = projects.reduce((acc, proj) => {
-    const key = proj.youthCoderEmail || 'unassigned'
-    if (!acc[key]) acc[key] = { name: proj.youthCoderName || '', email: key, projects: [] }
-    acc[key].projects.push(proj)
-    return acc
-  }, {})
 
   const initials = (profile?.name || user?.email || 'M').charAt(0).toUpperCase()
 
@@ -399,6 +486,30 @@ export default function MentorDashboard() {
           </button>
         </div>
 
+        {/* Available Youth Coders panel */}
+        {youthUsers.length > 0 && (
+          <div style={{ marginTop: '1rem', padding: '0.8rem', background: 'var(--bg2)', borderRadius: 10, border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--muted)', marginBottom: '0.5rem' }}>
+              Youth Coders ({youthUsers.length})
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+              {youthUsers.slice(0, 5).map(u => (
+                <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <div className="dash-avatar" style={{ width: 22, height: 22, fontSize: '0.6rem', borderRadius: 6, flexShrink: 0 }}>
+                    {(u.name || u.email).charAt(0).toUpperCase()}
+                  </div>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {u.name || u.email}
+                  </span>
+                </div>
+              ))}
+              {youthUsers.length > 5 && (
+                <span style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>+{youthUsers.length - 5} more</span>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="dash-signout">
           <button onClick={handleLogout}>Sign Out</button>
         </div>
@@ -414,7 +525,7 @@ export default function MentorDashboard() {
                 <div>
                   <h1 className="dash-title">Projects</h1>
                   <p className="dash-subtitle">
-                    {projectsLoading ? 'Loading…' : `${projects.length} project${projects.length !== 1 ? 's' : ''} across ${Object.keys(grouped).length} youth coder${Object.keys(grouped).length !== 1 ? 's' : ''}`}
+                    {projectsLoading ? 'Loading…' : `${projects.length} project${projects.length !== 1 ? 's' : ''}`}
                   </p>
                 </div>
                 <button className="dash-add-btn" onClick={() => setShowCreateModal(true)}>
@@ -443,30 +554,17 @@ export default function MentorDashboard() {
               </div>
             )}
 
-            {/* Grouped by youth coder */}
-            {Object.values(grouped).map(group => (
-              <div className="youth-group" key={group.email}>
-                <div className="youth-group-label">
-                  <div className="dash-avatar" style={{ width: 30, height: 30, fontSize: '0.8rem', borderRadius: 8, flexShrink: 0 }}>
-                    {(group.name || group.email).charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <span className="youth-group-name">{group.name || 'Youth Coder'}</span>
-                    {group.email !== 'unassigned' && (
-                      <span className="youth-group-email"> · {group.email}</span>
-                    )}
-                  </div>
-                  <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: 'var(--muted)', background: 'var(--bg2)', padding: '0.2rem 0.6rem', borderRadius: 100, border: '1px solid var(--border)' }}>
-                    {group.projects.length} project{group.projects.length !== 1 ? 's' : ''}
-                  </span>
-                </div>
-                <div className="proj-grid">
-                  {group.projects.map(proj => (
-                    <MentorProjectCard key={proj.id} project={proj} userEmail={user.email} />
-                  ))}
-                </div>
-              </div>
-            ))}
+            <div className="proj-grid">
+              {projects.map(proj => (
+                <MentorProjectCard
+                  key={proj.id}
+                  project={proj}
+                  userEmail={user.email}
+                  allYouthUsers={youthUsers}
+                  currentProfile={profile}
+                />
+              ))}
+            </div>
           </>
         )}
 
@@ -526,6 +624,7 @@ export default function MentorDashboard() {
           mentorName={profile?.name || ''}
           mentorId={user.uid}
           onClose={() => setShowCreateModal(false)}
+          youthUsers={youthUsers}
         />
       )}
     </div>
