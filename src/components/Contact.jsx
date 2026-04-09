@@ -128,7 +128,21 @@ function NonprofitForm() {
     }
   }
 
-  const handleApprove = () => setStage('email')
+  const handleApprove = () => {
+    // Save request to Firestore so admin/mentor can assign it
+    if (db) {
+      addDoc(collection(db, 'nonprofitRequests'), {
+        org: form.org,
+        contactName: form.name,
+        email: form.email,
+        need: form.need,
+        aiReport: report,
+        status: 'new',
+        submittedAt: serverTimestamp(),
+      }).catch(err => console.error('Failed to save request:', err))
+    }
+    setStage('confirmed')
+  }
   const handleRedo = () => { setStage('form'); setReport(null) }
 
   if (stage === 'loading') {
@@ -173,33 +187,21 @@ function NonprofitForm() {
     )
   }
 
-  if (stage === 'email' && report) {
+  if (stage === 'confirmed' && report) {
     const body = buildEmailBody(form, report)
     const hrefSelf = `mailto:${encodeURIComponent(form.email)}?subject=${encodeURIComponent('MpowerNPO — Your IT Requirements Report')}&body=${encodeURIComponent(body)}`
     const hrefUs   = `mailto:askmpowernpo@gmail.com?subject=${encodeURIComponent('Nonprofit IT Request: ' + form.org)}&body=${encodeURIComponent(body)}`
     return (
-      <div className="ai-report">
-        <div className="ai-report-header">
-          <span className="ai-report-badge">AI Report</span>
-          <span className="ai-report-title">{form.org}</span>
+      <div className="cpanel">
+        <div className="fsuccess">
+          <span>✅</span>
+          <p>Request Received!</p>
+          <small>We've received your IT request for <strong>{form.org}</strong>. Our team will review it and reach out soon. — The MpowerNPO Team</small>
         </div>
-        <div className="ai-section">
-          <div className="ai-section-label">What You Need</div>
-          <div className="ai-section-text">{report.summary}</div>
-        </div>
-        <div className="ai-section">
-          <div className="ai-section-label">What We'll Build</div>
-          <div className="ai-section-text">{report.solution}</div>
-        </div>
-        <div className="ai-section">
-          <div className="ai-section-label">Expected Impact</div>
-          <div className="ai-section-text">{report.impact}</div>
-        </div>
-        <div className="ai-email-section">
-          <div className="ai-email-label">✅ <strong>Report approved!</strong> What would you like to do next?</div>
-          <a className="ai-btn-email self" href={hrefSelf}>📧 Email me a copy</a>
-          <a className="ai-btn-email us" href={hrefUs}>📤 Send report to MpowerNPO</a>
-          <p className="ai-sent-note">Both buttons open your email client with everything pre-filled.<br />Your original need + full AI report are included in both.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.25rem' }}>
+          <p style={{ fontSize: '0.75rem', color: 'var(--muted)', textAlign: 'center' }}>Want a copy of your requirements report?</p>
+          <a className="ai-btn-email self" href={hrefSelf}>📧 Email me a copy of the report</a>
+          <a className="ai-btn-email us" href={hrefUs}>📤 Also send it directly to MpowerNPO</a>
         </div>
       </div>
     )

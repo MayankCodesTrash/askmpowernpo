@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react'
 import {
   collection, query, where, onSnapshot,
-  doc, updateDoc, addDoc, serverTimestamp, arrayUnion, getDocs,
+  doc, updateDoc, addDoc, serverTimestamp, arrayUnion, getDocs, orderBy,
 } from 'firebase/firestore'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { db } from '../firebase'
 import ChatTab from '../components/ChatTab'
+import FileUpload from '../components/FileUpload'
+import { useDarkMode } from '../hooks/useDarkMode'
+import { useUnreadChats } from '../hooks/useUnreadChats'
 
 const LINK_TYPES = ['GitHub', 'Google Drive', 'Figma', 'Replit', 'Google Slides', 'Other']
 const LINK_ICONS = {
@@ -170,9 +173,61 @@ function ManageYouthCoders({ project, allYouthUsers }) {
   )
 }
 
+// ── Mentor Request Card ───────────────────────────────────────────────────────
+function MentorRequestCard({ req, onCreateProject }) {
+  const [showNeed, setShowNeed] = useState(false)
+
+  return (
+    <div className="req-card">
+      <div className="req-card-top">
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem', flexWrap: 'wrap' }}>
+            <span className={`req-badge ${req.status || 'new'}`}>{req.status || 'New'}</span>
+            {req.submittedAt?.toDate && (
+              <span style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>
+                {req.submittedAt.toDate().toLocaleDateString()}
+              </span>
+            )}
+          </div>
+          <div className="req-org">{req.org}</div>
+          <div className="req-contact">{req.contactName} · {req.email}</div>
+        </div>
+        {(req.status === 'new' || !req.status) && (
+          <button className="req-create-btn" onClick={onCreateProject}>
+            + Create Project
+          </button>
+        )}
+      </div>
+
+      {req.aiReport && (
+        <div className="req-report">
+          <div className="req-report-row">
+            <span className="req-report-label">What They Need</span>
+            {req.aiReport.summary}
+          </div>
+          <div className="req-report-row">
+            <span className="req-report-label">Proposed Solution</span>
+            {req.aiReport.solution}
+          </div>
+        </div>
+      )}
+
+      {req.need && (
+        <div style={{ marginTop: '0.5rem' }}>
+          <button className="req-need-toggle" onClick={() => setShowNeed(s => !s)}>
+            {showNeed ? 'Hide original request ▲' : 'Show original request ▼'}
+          </button>
+          {showNeed && <div className="req-need-text">{req.need}</div>}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Mentor Project Card ───────────────────────────────────────────────────────
 function MentorProjectCard({ project, userEmail, allYouthUsers }) {
   const [updatingStatus, setUpdatingStatus] = useState(false)
+  const [showDesc, setShowDesc] = useState(false)
 
   const handleStatusChange = async (newStatus) => {
     if (!db) return
@@ -205,7 +260,14 @@ function MentorProjectCard({ project, userEmail, allYouthUsers }) {
         </select>
       </div>
 
-      <p className="proj-desc">{project.description || 'No description provided.'}</p>
+      {project.description ? (
+        <div style={{ marginBottom: '0.75rem' }}>
+          <button className="proj-desc-toggle" onClick={() => setShowDesc(s => !s)}>
+            {showDesc ? '▲ Hide description' : '▼ Show description'}
+          </button>
+          {showDesc && <div className="proj-desc-expanded">{project.description}</div>}
+        </div>
+      ) : null}
 
       <div className="proj-meta">
         <div className="proj-meta-row">
@@ -228,6 +290,8 @@ function MentorProjectCard({ project, userEmail, allYouthUsers }) {
 
       <div className="proj-divider" />
       <ProjectLinks project={project} userEmail={userEmail} />
+      <div className="proj-divider" />
+      <FileUpload projectId={project.id} />
     </div>
   )
 }
@@ -398,14 +462,19 @@ function CreateProjectModal({ mentorEmail, mentorName, mentorId, onClose, youthU
 export default function MentorDashboard() {
   const { user, profile, logout } = useAuth()
   const navigate = useNavigate()
+  const [dark, toggleDark] = useDarkMode()
   const [tab, setTab] = useState('projects')
   const [projects, setProjects] = useState([])
+  const [requests, setRequests] = useState([])
   const [projectsLoading, setProjectsLoading] = useState(true)
+  const [reqLoading, setReqLoading] = useState(true)
   const [youthUsers, setYouthUsers] = useState([])
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [name, setName] = useState(profile?.name || '')
   const [saved, setSaved] = useState(false)
   const [saveLoading, setSaveLoading] = useState(false)
+
+  const { totalUnread, markProjectRead } = useUnreadChats(projects, user?.uid)
 
   useEffect(() => {
     if (!user || !db) { setProjectsLoading(false); return }
@@ -416,6 +485,17 @@ export default function MentorDashboard() {
     }, () => setProjectsLoading(false))
     return unsub
   }, [user])
+
+  // Load nonprofit requests
+  useEffect(() => {
+    if (!db) { setReqLoading(false); return }
+    const unsubReq = onSnapshot(
+      query(collection(db, 'nonprofitRequests'), orderBy('submittedAt', 'desc')),
+      snap => { setRequests(snap.docs.map(d => ({ id: d.id, ...d.data() }))); setReqLoading(false) },
+      () => setReqLoading(false)
+    )
+    return unsubReq
+  }, [])
 
   // Load all youth coders for assignment picker
   useEffect(() => {
@@ -478,8 +558,19 @@ export default function MentorDashboard() {
           <button className={`dash-nav-item${tab === 'projects' ? ' active' : ''}`} onClick={() => setTab('projects')}>
             <span className="dico">📁</span> Projects
           </button>
+          <button className={`dash-nav-item${tab === 'requests' ? ' active' : ''}`} onClick={() => setTab('requests')}>
+            <span className="dico">📨</span> Requests
+            {requests.filter(r => !r.status || r.status === 'new').length > 0 && (
+              <span style={{ marginLeft: 'auto', background: 'var(--gold)', color: '#fff', fontSize: '0.68rem', fontWeight: 700, padding: '0.1rem 0.5rem', borderRadius: 100 }}>
+                {requests.filter(r => !r.status || r.status === 'new').length}
+              </span>
+            )}
+          </button>
           <button className={`dash-nav-item${tab === 'chat' ? ' active' : ''}`} onClick={() => setTab('chat')}>
             <span className="dico">💬</span> Chat
+            {totalUnread > 0 && tab !== 'chat' && (
+              <span className="unread-badge">{totalUnread > 99 ? '99+' : totalUnread}</span>
+            )}
           </button>
           <button className={`dash-nav-item${tab === 'settings' ? ' active' : ''}`} onClick={() => setTab('settings')}>
             <span className="dico">⚙️</span> Settings
@@ -511,7 +602,10 @@ export default function MentorDashboard() {
         )}
 
         <div className="dash-signout">
-          <button onClick={handleLogout}>Sign Out</button>
+          <button className="dark-toggle" onClick={toggleDark}>
+            {dark ? '☀️ Light Mode' : '🌙 Dark Mode'}
+          </button>
+          <button onClick={handleLogout} style={{ marginTop: '0.5rem' }}>Sign Out</button>
         </div>
       </aside>
 
@@ -567,6 +661,29 @@ export default function MentorDashboard() {
           </>
         )}
 
+        {/* REQUESTS TAB */}
+        {tab === 'requests' && (
+          <>
+            <div className="dash-header">
+              <h1 className="dash-title">Nonprofit Requests</h1>
+              <p className="dash-subtitle">IT requests from nonprofits — create a project to get started</p>
+            </div>
+            {reqLoading && <div className="dash-empty"><div className="dash-spinner" /></div>}
+            {!reqLoading && requests.length === 0 && (
+              <div className="dash-empty">
+                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📨</div>
+                <p style={{ fontWeight: 700 }}>No requests yet</p>
+                <p style={{ fontSize: '0.88rem', color: 'var(--muted)', marginTop: '0.3rem' }}>Nonprofit requests will appear here once submitted.</p>
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {requests.map(req => (
+                <MentorRequestCard key={req.id} req={req} onCreateProject={() => setShowCreateModal(true)} />
+              ))}
+            </div>
+          </>
+        )}
+
         {/* CHAT TAB */}
         {tab === 'chat' && (
           <>
@@ -574,7 +691,12 @@ export default function MentorDashboard() {
               <h1 className="dash-title">Team Chat</h1>
               <p className="dash-subtitle">Chat with your youth coders on each project</p>
             </div>
-            <ChatTab projects={projects} currentUser={user} currentProfile={profile} />
+            <ChatTab
+              projects={projects}
+              currentUser={user}
+              currentProfile={profile}
+              onProjectRead={markProjectRead}
+            />
           </>
         )}
 

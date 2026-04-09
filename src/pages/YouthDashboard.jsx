@@ -7,6 +7,9 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { db } from '../firebase'
 import ChatTab from '../components/ChatTab'
+import FileUpload from '../components/FileUpload'
+import { useDarkMode } from '../hooks/useDarkMode'
+import { useUnreadChats } from '../hooks/useUnreadChats'
 
 const STATUS_LABELS = {
   planning: 'Planning',
@@ -100,6 +103,7 @@ function ProjectLinks({ project, userEmail }) {
 
 // ── Project Card ──────────────────────────────────────────────────────────────
 function ProjectCard({ project, userEmail, userId }) {
+  const [showDesc, setShowDesc] = useState(false)
 
   // Normalize youth coders list (handles both old and new format)
   const youthList = (project.youthCoders && project.youthCoders.length > 0)
@@ -123,7 +127,14 @@ function ProjectCard({ project, userEmail, userId }) {
         </span>
       </div>
 
-      <p className="proj-desc">{project.description || 'No description provided.'}</p>
+      {project.description ? (
+        <div style={{ marginBottom: '0.75rem' }}>
+          <button className="proj-desc-toggle" onClick={() => setShowDesc(s => !s)}>
+            {showDesc ? '▲ Hide description' : '▼ Show description'}
+          </button>
+          {showDesc && <div className="proj-desc-expanded">{project.description}</div>}
+        </div>
+      ) : null}
 
       <div className="proj-meta">
         <div className="proj-meta-row">
@@ -159,6 +170,8 @@ function ProjectCard({ project, userEmail, userId }) {
 
       <div className="proj-divider" />
       <ProjectLinks project={project} userEmail={userEmail} />
+      <div className="proj-divider" />
+      <FileUpload projectId={project.id} />
     </div>
   )
 }
@@ -167,12 +180,15 @@ function ProjectCard({ project, userEmail, userId }) {
 export default function YouthDashboard() {
   const { user, profile, logout } = useAuth()
   const navigate = useNavigate()
+  const [dark, toggleDark] = useDarkMode()
   const [tab, setTab] = useState('projects')
   const [projects, setProjects] = useState([])
   const [projectsLoading, setProjectsLoading] = useState(true)
   const [name, setName] = useState(profile?.name || '')
   const [saved, setSaved] = useState(false)
   const [saveLoading, setSaveLoading] = useState(false)
+
+  const { totalUnread, markProjectRead } = useUnreadChats(projects, user?.uid)
 
   useEffect(() => {
     if (!user || !db) { setProjectsLoading(false); return }
@@ -256,6 +272,9 @@ export default function YouthDashboard() {
           </button>
           <button className={`dash-nav-item${tab === 'chat' ? ' active' : ''}`} onClick={() => setTab('chat')}>
             <span className="dico">💬</span> Chat
+            {totalUnread > 0 && tab !== 'chat' && (
+              <span className="unread-badge">{totalUnread > 99 ? '99+' : totalUnread}</span>
+            )}
           </button>
           <button className={`dash-nav-item${tab === 'settings' ? ' active' : ''}`} onClick={() => setTab('settings')}>
             <span className="dico">⚙️</span> Settings
@@ -263,7 +282,10 @@ export default function YouthDashboard() {
         </div>
 
         <div className="dash-signout">
-          <button onClick={handleLogout}>Sign Out</button>
+          <button className="dark-toggle" onClick={toggleDark}>
+            {dark ? '☀️ Light Mode' : '🌙 Dark Mode'}
+          </button>
+          <button onClick={handleLogout} style={{ marginTop: '0.5rem' }}>Sign Out</button>
         </div>
       </aside>
 
@@ -317,7 +339,12 @@ export default function YouthDashboard() {
               <h1 className="dash-title">Team Chat</h1>
               <p className="dash-subtitle">Chat with your mentor and teammates on each project</p>
             </div>
-            <ChatTab projects={projects} currentUser={user} currentProfile={profile} />
+            <ChatTab
+              projects={projects}
+              currentUser={user}
+              currentProfile={profile}
+              onProjectRead={markProjectRead}
+            />
           </>
         )}
 

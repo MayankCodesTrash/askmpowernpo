@@ -19,7 +19,7 @@ function getYouthList(project) {
   return []
 }
 
-export default function ChatTab({ projects, currentUser, currentProfile }) {
+export default function ChatTab({ projects, currentUser, currentProfile, onProjectRead, unreadCounts = {} }) {
   const [selectedId, setSelectedId] = useState(null)
   const [messages, setMessages] = useState([])
   const [text, setText] = useState('')
@@ -35,6 +35,11 @@ export default function ChatTab({ projects, currentUser, currentProfile }) {
       setSelectedId(projects[0].id)
     }
   }, [projects, selectedId])
+
+  // Mark project as read when selected
+  useEffect(() => {
+    if (selectedId && onProjectRead) onProjectRead(selectedId)
+  }, [selectedId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Subscribe to messages for selected project
   useEffect(() => {
@@ -99,6 +104,8 @@ export default function ChatTab({ projects, currentUser, currentProfile }) {
             ...youth.map(y => y.name || y.email),
           ].filter(Boolean).join(', ')
 
+          const roomUnread = unreadCounts[p.id] || 0
+
           return (
             <button
               key={p.id}
@@ -112,10 +119,9 @@ export default function ChatTab({ projects, currentUser, currentProfile }) {
                 <div className="chat-room-name">{p.title}</div>
                 <div className="chat-room-sub">{membersLabel || 'No members assigned'}</div>
               </div>
-              <span className={`proj-status ${p.status || 'planning'}`}
-                style={{ fontSize: '0.58rem', padding: '0.1rem 0.45rem', flexShrink: 0 }}>
-                {STATUS_LABELS[p.status] || 'Planning'}
-              </span>
+              {roomUnread > 0 && selectedId !== p.id && (
+                <span className="unread-badge">{roomUnread > 99 ? '99+' : roomUnread}</span>
+              )}
             </button>
           )
         })}

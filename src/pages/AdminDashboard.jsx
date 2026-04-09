@@ -9,6 +9,9 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../AuthContext'
 import { db, firebaseConfig } from '../firebase'
 import ChatTab from '../components/ChatTab'
+import FileUpload from '../components/FileUpload'
+import { useDarkMode } from '../hooks/useDarkMode'
+import { useUnreadChats } from '../hooks/useUnreadChats'
 
 // Creates a Firebase Auth user without logging out the admin
 async function createAuthUser(email, password) {
@@ -295,6 +298,113 @@ function Row({ label, value }) {
   )
 }
 
+// ── Nonprofit Request Card ────────────────────────────────────────────────────
+function NonprofitRequestCard({ req, onCreateProject }) {
+  const [showNeed, setShowNeed] = useState(false)
+
+  return (
+    <div className="req-card">
+      <div className="req-card-top">
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.3rem', flexWrap: 'wrap' }}>
+            <span className={`req-badge ${req.status || 'new'}`}>{req.status || 'New'}</span>
+            {req.submittedAt?.toDate && (
+              <span style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>
+                {req.submittedAt.toDate().toLocaleDateString()}
+              </span>
+            )}
+          </div>
+          <div className="req-org">{req.org}</div>
+          <div className="req-contact">{req.contactName} · {req.email}</div>
+        </div>
+        <div>
+          {(req.status === 'new' || !req.status) && (
+            <button className="req-create-btn" onClick={() => onCreateProject(req)}>
+              + Assign Project
+            </button>
+          )}
+        </div>
+      </div>
+
+      {req.aiReport && (
+        <div className="req-report">
+          <div className="req-report-row">
+            <span className="req-report-label">What They Need</span>
+            {req.aiReport.summary}
+          </div>
+          <div className="req-report-row">
+            <span className="req-report-label">Proposed Solution</span>
+            {req.aiReport.solution}
+          </div>
+          <div className="req-report-row">
+            <span className="req-report-label">Expected Impact</span>
+            {req.aiReport.impact}
+          </div>
+        </div>
+      )}
+
+      {req.need && (
+        <div style={{ marginTop: '0.5rem' }}>
+          <button className="req-need-toggle" onClick={() => setShowNeed(s => !s)}>
+            {showNeed ? 'Hide original request ▲' : 'Show original request ▼'}
+          </button>
+          {showNeed && <div className="req-need-text">{req.need}</div>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Admin Project Card ────────────────────────────────────────────────────────
+function AdminProjectCard({ proj, allYouthUsers }) {
+  const [showDesc, setShowDesc] = useState(false)
+
+  return (
+    <div className="proj-card">
+      <div className="proj-card-header">
+        <div>
+          <div className="proj-card-title">{proj.title}</div>
+          <div className="proj-card-id">ID: {proj.id.slice(0, 8).toUpperCase()}</div>
+        </div>
+        <span className={`proj-status ${proj.status || 'planning'}`}>
+          {STATUS_LABELS[proj.status] || 'Planning'}
+        </span>
+      </div>
+
+      {proj.description ? (
+        <div style={{ marginBottom: '0.75rem' }}>
+          <button className="proj-desc-toggle" onClick={() => setShowDesc(s => !s)}>
+            {showDesc ? '▲ Hide description' : '▼ Show description'}
+          </button>
+          {showDesc && <div className="proj-desc-expanded">{proj.description}</div>}
+        </div>
+      ) : null}
+
+      <div className="proj-meta">
+        <div className="proj-meta-row">
+          <span className="proj-meta-label">Mentor</span>
+          <span className="proj-meta-value">{proj.mentorName || '—'} {proj.mentorEmail ? `· ${proj.mentorEmail}` : ''}</span>
+        </div>
+        <div className="proj-meta-row">
+          <span className="proj-meta-label">Youth</span>
+          <div style={{ flex: 1 }}>
+            <ManageYouthCoders project={proj} allYouthUsers={allYouthUsers} />
+          </div>
+        </div>
+        <div className="proj-meta-row">
+          <span className="proj-meta-label">Org</span>
+          <span className="proj-meta-value">{proj.organization || '—'}</span>
+        </div>
+      </div>
+
+      <div className="proj-divider" />
+      <ProjectLinks project={proj} />
+      <div className="proj-divider" />
+      <FileUpload projectId={proj.id} />
+    </div>
+  )
+}
+
 // ── Create User Modal ─────────────────────────────────────────────────────────
 function CreateUserModal({ onClose }) {
   const [form, setForm] = useState({
@@ -407,9 +517,9 @@ function CreateUserModal({ onClose }) {
 }
 
 // ── Create Project Modal ──────────────────────────────────────────────────────
-function CreateProjectModal({ mentors, youthUsers, onClose }) {
+function CreateProjectModal({ mentors, youthUsers, onClose, initialOrg = '', initialContact = '', requestId = null }) {
   const [form, setForm] = useState({
-    title: '', description: '', organization: '', orgContact: '',
+    title: '', description: '', organization: initialOrg, orgContact: initialContact,
     mentorId: '', status: 'planning',
   })
   const [selectedYouth, setSelectedYouth] = useState([])
@@ -443,7 +553,7 @@ function CreateProjectModal({ mentors, youthUsers, onClose }) {
       const mentor = mentors.find(m => m.id === form.mentorId)
       const youthCoders = selectedYouth.map(u => ({ id: u.id, email: u.email, name: u.name || '' }))
       const youthCoderIds = youthCoders.map(y => y.id)
-      await addDoc(collection(db, 'projects'), {
+      const projRef = await addDoc(collection(db, 'projects'), {
         title: form.title.trim(),
         description: form.description.trim(),
         organization: form.organization.trim(),
@@ -461,6 +571,14 @@ function CreateProjectModal({ mentors, youthUsers, onClose }) {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
+      // If created from a nonprofit request, mark it as assigned
+      if (requestId) {
+        await updateDoc(doc(db, 'nonprofitRequests', requestId), {
+          status: 'assigned',
+          projectId: projRef.id,
+          assignedAt: serverTimestamp(),
+        }).catch(() => {})
+      }
       onClose()
     } catch {
       setError('Failed to create project. Please try again.')
@@ -567,31 +685,40 @@ function CreateProjectModal({ mentors, youthUsers, onClose }) {
 export default function AdminDashboard() {
   const { user, profile, logout } = useAuth()
   const navigate = useNavigate()
+  const [dark, toggleDark] = useDarkMode()
   const [tab, setTab] = useState('applications')
   const [applications, setApplications] = useState([])
   const [projects, setProjects] = useState([])
+  const [requests, setRequests] = useState([])
   const [mentors, setMentors] = useState([])
   const [youthUsers, setYouthUsers] = useState([])
   const [appsLoading, setAppsLoading] = useState(true)
   const [projLoading, setProjLoading] = useState(true)
+  const [reqLoading, setReqLoading] = useState(true)
   const [filter, setFilter] = useState('pending')
   const [createProjectModal, setCreateProjectModal] = useState(false)
+  const [createFromRequest, setCreateFromRequest] = useState(null)
   const [createUserModal, setCreateUserModal] = useState(false)
 
+  const { totalUnread, markProjectRead } = useUnreadChats(projects, user?.uid)
+
   useEffect(() => {
-    if (!db) { setAppsLoading(false); setProjLoading(false); return }
+    if (!db) { setAppsLoading(false); setProjLoading(false); setReqLoading(false); return }
     const unsubApps = onSnapshot(query(collection(db, 'applications'), orderBy('submittedAt', 'desc')),
       snap => { setApplications(snap.docs.map(d => ({ id: d.id, ...d.data() }))); setAppsLoading(false) },
       () => setAppsLoading(false))
     const unsubProj = onSnapshot(query(collection(db, 'projects'), orderBy('createdAt', 'desc')),
       snap => { setProjects(snap.docs.map(d => ({ id: d.id, ...d.data() }))); setProjLoading(false) },
       () => setProjLoading(false))
+    const unsubReq = onSnapshot(query(collection(db, 'nonprofitRequests'), orderBy('submittedAt', 'desc')),
+      snap => { setRequests(snap.docs.map(d => ({ id: d.id, ...d.data() }))); setReqLoading(false) },
+      () => setReqLoading(false))
     // Fetch mentors and youth coders
     getDocs(query(collection(db, 'users'), where('role', '==', 'mentor')))
       .then(snap => setMentors(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
     getDocs(query(collection(db, 'users'), where('role', '==', 'youth')))
       .then(snap => setYouthUsers(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
-    return () => { unsubApps(); unsubProj() }
+    return () => { unsubApps(); unsubProj(); unsubReq() }
   }, [])
 
   const handleApprove = async (app) => {
@@ -659,11 +786,22 @@ export default function AdminDashboard() {
             <span className="dico">📋</span> Applications
             {pending > 0 && <span style={{ marginLeft: 'auto', background: 'var(--blue)', color: '#fff', fontSize: '0.68rem', fontWeight: 700, padding: '0.1rem 0.5rem', borderRadius: 100 }}>{pending}</span>}
           </button>
+          <button className={`dash-nav-item${tab === 'requests' ? ' active' : ''}`} onClick={() => setTab('requests')}>
+            <span className="dico">📨</span> Requests
+            {requests.filter(r => !r.status || r.status === 'new').length > 0 && (
+              <span style={{ marginLeft: 'auto', background: 'var(--gold)', color: '#fff', fontSize: '0.68rem', fontWeight: 700, padding: '0.1rem 0.5rem', borderRadius: 100 }}>
+                {requests.filter(r => !r.status || r.status === 'new').length}
+              </span>
+            )}
+          </button>
           <button className={`dash-nav-item${tab === 'projects' ? ' active' : ''}`} onClick={() => setTab('projects')}>
             <span className="dico">📁</span> Projects
           </button>
           <button className={`dash-nav-item${tab === 'chat' ? ' active' : ''}`} onClick={() => setTab('chat')}>
             <span className="dico">💬</span> Chat
+            {totalUnread > 0 && tab !== 'chat' && (
+              <span className="unread-badge">{totalUnread > 99 ? '99+' : totalUnread}</span>
+            )}
           </button>
           <button className={`dash-nav-item${tab === 'users' ? ' active' : ''}`} onClick={() => setTab('users')}>
             <span className="dico">👤</span> Add Member
@@ -695,7 +833,10 @@ export default function AdminDashboard() {
         )}
 
         <div className="dash-signout">
-          <button onClick={handleLogout}>Sign Out</button>
+          <button className="dark-toggle" onClick={toggleDark}>
+            {dark ? '☀️ Light Mode' : '🌙 Dark Mode'}
+          </button>
+          <button onClick={handleLogout} style={{ marginTop: '0.5rem' }}>Sign Out</button>
         </div>
       </aside>
 
@@ -748,36 +889,34 @@ export default function AdminDashboard() {
 
             <div className="proj-grid">
               {projects.map(proj => (
-                <div key={proj.id} className="proj-card">
-                  <div className="proj-card-header">
-                    <div>
-                      <div className="proj-card-title">{proj.title}</div>
-                      <div className="proj-card-id">ID: {proj.id.slice(0, 8).toUpperCase()}</div>
-                    </div>
-                    <span className={`proj-status ${proj.status || 'planning'}`}>
-                      {STATUS_LABELS[proj.status] || 'Planning'}
-                    </span>
-                  </div>
-                  <p className="proj-desc">{proj.description || 'No description.'}</p>
-                  <div className="proj-meta">
-                    <div className="proj-meta-row">
-                      <span className="proj-meta-label">Mentor</span>
-                      <span className="proj-meta-value">{proj.mentorName || '—'} {proj.mentorEmail ? `· ${proj.mentorEmail}` : ''}</span>
-                    </div>
-                    <div className="proj-meta-row">
-                      <span className="proj-meta-label">Youth</span>
-                      <div style={{ flex: 1 }}>
-                        <ManageYouthCoders project={proj} allYouthUsers={youthUsers} />
-                      </div>
-                    </div>
-                    <div className="proj-meta-row">
-                      <span className="proj-meta-label">Org</span>
-                      <span className="proj-meta-value">{proj.organization || '—'}</span>
-                    </div>
-                  </div>
-                  <div className="proj-divider" />
-                  <ProjectLinks project={proj} />
-                </div>
+                <AdminProjectCard key={proj.id} proj={proj} allYouthUsers={youthUsers} />
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* ── REQUESTS ── */}
+        {tab === 'requests' && (
+          <>
+            <div className="dash-header">
+              <h1 className="dash-title">Nonprofit Requests</h1>
+              <p className="dash-subtitle">IT requests submitted by nonprofits — assign them to a project team</p>
+            </div>
+            {reqLoading && <div className="dash-empty"><div className="dash-spinner" /></div>}
+            {!reqLoading && requests.length === 0 && (
+              <div className="dash-empty">
+                <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📨</div>
+                <p style={{ fontWeight: 700 }}>No requests yet</p>
+                <p style={{ fontSize: '0.88rem', color: 'var(--muted)', marginTop: '0.3rem' }}>Nonprofit requests will appear here once submitted.</p>
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {requests.map(req => (
+                <NonprofitRequestCard
+                  key={req.id}
+                  req={req}
+                  onCreateProject={(r) => setCreateFromRequest(r)}
+                />
               ))}
             </div>
           </>
@@ -790,7 +929,12 @@ export default function AdminDashboard() {
               <h1 className="dash-title">All Project Chats</h1>
               <p className="dash-subtitle">Oversee all project conversations across every team</p>
             </div>
-            <ChatTab projects={projects} currentUser={user} currentProfile={profile} />
+            <ChatTab
+              projects={projects}
+              currentUser={user}
+              currentProfile={profile}
+              onProjectRead={markProjectRead}
+            />
           </>
         )}
 
@@ -818,6 +962,16 @@ export default function AdminDashboard() {
           mentors={mentors}
           youthUsers={youthUsers}
           onClose={() => setCreateProjectModal(false)}
+        />
+      )}
+      {createFromRequest && (
+        <CreateProjectModal
+          mentors={mentors}
+          youthUsers={youthUsers}
+          initialOrg={createFromRequest.org}
+          initialContact={createFromRequest.email}
+          requestId={createFromRequest.id}
+          onClose={() => setCreateFromRequest(null)}
         />
       )}
       {createUserModal && (
