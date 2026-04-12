@@ -92,8 +92,17 @@ function calcSkillScore(form) {
 }
 
 // ── Nonprofit Form ────────────────────────────────────────────────────────────
+const SERVICES = [
+  'Website Updates & Enhancements',
+  'Calendar & Schedule System Setup',
+  'Flyers & Posters — Create & Update',
+  'Data Organization & Automation',
+  'Onsite Tech Support',
+  'Other',
+]
+
 function NonprofitForm() {
-  const [form, setForm] = useState({ org: '', name: '', email: '', need: '' })
+  const [form, setForm] = useState({ org: '', name: '', email: '', service: '', need: '' })
   const [stage, setStage] = useState('form')
   const [report, setReport] = useState(null)
   const [error, setError] = useState('')
@@ -127,6 +136,7 @@ function NonprofitForm() {
         org: form.org,
         contactName: form.name,
         email: form.email,
+        service: form.service,
         need: form.need,
         aiReport: report,
         status: 'new',
@@ -212,6 +222,13 @@ function NonprofitForm() {
       <div className="fg">
         <label>Email Address</label>
         <input type="email" placeholder="you@organization.org" value={form.email} onChange={set('email')} />
+      </div>
+      <div className="fg">
+        <label>Service Needed</label>
+        <select value={form.service} onChange={set('service')}>
+          <option value="">Select a service…</option>
+          {SERVICES.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
       </div>
       <div className="fg">
         <label>Describe Your IT Need</label>

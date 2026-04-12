@@ -30,7 +30,7 @@ export default function Catalog() {
         </div>
         {open && (
           <>
-            <p className="ssub">Here's a sample of the tech services our student teams can deliver — at no cost to your nonprofit.</p>
+            <p className="ssub">The tech services our student teams can deliver — at no cost to your nonprofit.</p>
             <div style={{ marginTop: '2.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.5rem' }}>
               {offerings.map(o => (
                 <div key={o.title} style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: '16px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
