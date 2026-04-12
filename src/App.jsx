@@ -8,6 +8,7 @@ import Roles from './components/Roles'
 import IowaStats from './components/IowaStats'
 import Founder from './components/Founder'
 import Contact from './components/Contact'
+import Catalog from './components/Catalog'
 import Footer from './components/Footer'
 import Login from './pages/Login'
 import YouthDashboard from './pages/YouthDashboard'
@@ -30,6 +31,10 @@ function Home() {
       <Nav />
       <Hero />
       <hr className="divider" />
+      <Contact />
+      <hr className="divider" />
+      <Catalog />
+      <hr className="divider" />
       <HowItWorks />
       <hr className="divider" />
       <Impact />
@@ -39,8 +44,6 @@ function Home() {
       <IowaStats />
       <hr className="divider" />
       <Founder />
-      <hr className="divider" />
-      <Contact />
       <Footer />
     </>
   )

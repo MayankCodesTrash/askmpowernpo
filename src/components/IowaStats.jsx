@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 const stats = [
   { num: '32,836', title: 'Nonprofits in Iowa', desc: 'Iowa is home to over 32,000 registered nonprofits — including 18,671 charitable 501(c)(3)s — employing nearly 239,000 people statewide.' },
   { num: '42%', title: 'List Digital Transformation as a Top Priority', desc: '42% of nonprofit leaders cite digital transformation as a top-3 goal — but lack the technical support to act on it. (BDO Nonprofit Survey)' },
@@ -7,25 +9,43 @@ const stats = [
 ]
 
 export default function IowaStats() {
+  const [open, setOpen] = useState(false)
   return (
     <section id="iowa">
       <div className="inner">
-        <span className="slabel">Why It Matters — Iowa</span>
-        <h2 className="stitle">The IT gap is <em>right here</em><br />in Iowa</h2>
-        <p className="ssub">Iowa has one of the strongest nonprofit ecosystems in the Midwest — but most organizations still struggle with outdated IT and manual processes.</p>
-        <div className="iowa-grid">
-          {stats.map(s => (
-            <div className="iowa-card" key={s.num}>
-              <div className="iowa-num">{s.num}</div>
-              <div className="iowa-ttl">{s.title}</div>
-              <p className="iowa-desc">{s.desc}</p>
+        <div
+          style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', cursor: 'pointer' }}
+          onClick={() => setOpen(o => !o)}
+        >
+          <div>
+            <span className="slabel">Why It Matters — Iowa</span>
+            <h2 className="stitle">The IT gap is <em>right here</em><br />in Iowa</h2>
+          </div>
+          <button
+            style={{ flexShrink: 0, marginTop: '0.5rem', background: 'none', border: '1px solid var(--border)', borderRadius: '6px', padding: '4px 14px', cursor: 'pointer', fontSize: '0.85rem', color: 'var(--muted)' }}
+            onClick={e => { e.stopPropagation(); setOpen(o => !o) }}
+          >
+            {open ? '▲ Collapse' : '▼ Expand'}
+          </button>
+        </div>
+        {open && (
+          <>
+            <p className="ssub">Iowa has one of the strongest nonprofit ecosystems in the Midwest — but most organizations still struggle with outdated IT and manual processes.</p>
+            <div className="iowa-grid">
+              {stats.map(s => (
+                <div className="iowa-card" key={s.num}>
+                  <div className="iowa-num">{s.num}</div>
+                  <div className="iowa-ttl">{s.title}</div>
+                  <p className="iowa-desc">{s.desc}</p>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <div className="iowa-box">
-          <span>💡</span>
-          <div><strong>The opportunity is clear.</strong> Iowa has thousands of nonprofits doing critical work — and an entire generation of students with coding skills who've never applied them to a real community IT need. MpowerNPO bridges that gap, one request at a time.</div>
-        </div>
+            <div className="iowa-box">
+              <span>💡</span>
+              <div><strong>The opportunity is clear.</strong> Iowa has thousands of nonprofits doing critical work — and an entire generation of students with coding skills who've never applied them to a real community IT need. MpowerNPO bridges that gap, one request at a time.</div>
+            </div>
+          </>
+        )}
       </div>
     </section>
   )

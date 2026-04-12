@@ -196,7 +196,7 @@ function NonprofitForm() {
         <div className="fsuccess">
           <span>✅</span>
           <p>Request Received!</p>
-          <small>We've received your IT request for <strong>{form.org}</strong>. Our team will review it and reach out soon. — The MpowerNPO Team</small>
+          <small>Thank you! We've received your IT request for <strong>{form.org}</strong>. Our team will review it and reach out within <strong>2–3 business days</strong>. — The MpowerNPO Team</small>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '0.25rem' }}>
           <p style={{ fontSize: '0.75rem', color: 'var(--muted)', textAlign: 'center' }}>Want a copy of your requirements report?</p>
@@ -567,8 +567,8 @@ export default function Contact() {
           <div className="cform">
             <div className="ctabs">
               <button className={`ctab${tab === 'nonprofit' ? ' on' : ''}`} onClick={() => setTab('nonprofit')}>I'm a Nonprofit</button>
-              <button className={`ctab${tab === 'student' ? ' on' : ''}`} onClick={() => setTab('student')}>I'm a Student</button>
-              <button className={`ctab${tab === 'mentor' ? ' on' : ''}`} onClick={() => setTab('mentor')}>I'm a Mentor</button>
+              <button className={`ctab${tab === 'student' ? ' on' : ''}`} onClick={() => setTab('student')}>Student Volunteer</button>
+              <button className={`ctab${tab === 'mentor' ? ' on' : ''}`} onClick={() => setTab('mentor')}>Mentor Volunteer</button>
             </div>
             {tab === 'nonprofit' && <NonprofitForm />}
             {tab === 'student'   && <StudentForm />}
