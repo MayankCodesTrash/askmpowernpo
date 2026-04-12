@@ -31,8 +31,6 @@ function Home() {
       <Nav />
       <Hero />
       <hr className="divider" />
-      <Contact />
-      <hr className="divider" />
       <Catalog />
       <hr className="divider" />
       <HowItWorks />

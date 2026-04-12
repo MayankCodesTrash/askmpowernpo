@@ -13,10 +13,7 @@ export default function Nav() {
           <text x="60" y="112" textAnchor="middle" fontFamily="Georgia,serif" fontSize="82" fontWeight="900" fill="#ffffff" letterSpacing="-4">M</text>
           <path d="M20 148 Q60 162 100 148" fill="none" stroke="#e8a020" strokeWidth="5" strokeLinecap="round"/>
         </svg>
-        <div>
-          <span className="nav-logo-main">Mpower<span>NPO</span></span>
-          <span className="nav-logo-sub">Founder &amp; Youth Leader: Mayank Bhatt</span>
-        </div>
+        <span className="nav-logo-main">Mpower<span>NPO</span></span>
       </a>
       <ul className="nav-links">
         <li><a href="#how">How It Works</a></li>
