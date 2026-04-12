@@ -193,7 +193,7 @@ function MentorRequestCard({ req, onCreateProject }) {
           <div className="req-contact">{req.contactName} · {req.email}</div>
         </div>
         {(req.status === 'new' || !req.status) && (
-          <button className="req-create-btn" onClick={onCreateProject}>
+          <button className="req-create-btn" onClick={() => onCreateProject(req)}>
             + Create Project
           </button>
         )}
@@ -297,12 +297,12 @@ function MentorProjectCard({ project, userEmail, allYouthUsers }) {
 }
 
 // ── Create Project Modal ──────────────────────────────────────────────────────
-function CreateProjectModal({ mentorEmail, mentorName, mentorId, onClose, youthUsers }) {
+function CreateProjectModal({ mentorEmail, mentorName, mentorId, onClose, youthUsers, fromRequest = null }) {
   const [form, setForm] = useState({
-    title: '',
-    description: '',
-    organization: '',
-    orgContact: '',
+    title: fromRequest ? `${fromRequest.org} — IT Project` : '',
+    description: fromRequest ? (fromRequest.aiReport?.solution || fromRequest.need || '') : '',
+    organization: fromRequest?.org || '',
+    orgContact: fromRequest?.email || '',
     status: 'planning',
   })
   const [selectedYouth, setSelectedYouth] = useState([])
@@ -340,7 +340,7 @@ function CreateProjectModal({ mentorEmail, mentorName, mentorId, onClose, youthU
       const youthCoders = selectedYouth.map(u => ({ id: u.id, email: u.email, name: u.name || '' }))
       const youthCoderIds = youthCoders.map(y => y.id)
 
-      await addDoc(collection(db, 'projects'), {
+      const projRef = await addDoc(collection(db, 'projects'), {
         title: form.title.trim(),
         description: form.description.trim(),
         youthCoders,
@@ -358,6 +358,14 @@ function CreateProjectModal({ mentorEmail, mentorName, mentorId, onClose, youthU
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       })
+      // If created from a nonprofit request, mark it as assigned
+      if (fromRequest?.id) {
+        await updateDoc(doc(db, 'nonprofitRequests', fromRequest.id), {
+          status: 'assigned',
+          projectId: projRef.id,
+          assignedAt: serverTimestamp(),
+        }).catch(() => {})
+      }
       onClose()
     } catch {
       setError('Failed to create project. Please try again.')
@@ -469,7 +477,7 @@ export default function MentorDashboard() {
   const [projectsLoading, setProjectsLoading] = useState(true)
   const [reqLoading, setReqLoading] = useState(true)
   const [youthUsers, setYouthUsers] = useState([])
-  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [createFromRequest, setCreateFromRequest] = useState(null)
   const [name, setName] = useState(profile?.name || '')
   const [saved, setSaved] = useState(false)
   const [saveLoading, setSaveLoading] = useState(false)
@@ -622,7 +630,7 @@ export default function MentorDashboard() {
                     {projectsLoading ? 'Loading…' : `${projects.length} project${projects.length !== 1 ? 's' : ''}`}
                   </p>
                 </div>
-                <button className="dash-add-btn" onClick={() => setShowCreateModal(true)}>
+                <button className="dash-add-btn" onClick={() => setCreateFromRequest({})}>
                   + New Project
                 </button>
               </div>
@@ -635,7 +643,7 @@ export default function MentorDashboard() {
                 <p style={{ fontSize: '0.88rem', color: 'var(--muted)', marginTop: '0.3rem', marginBottom: '1.2rem' }}>
                   Create your first project to get started with your youth coders.
                 </p>
-                <button className="dash-add-btn" onClick={() => setShowCreateModal(true)}>
+                <button className="dash-add-btn" onClick={() => setCreateFromRequest({})}>
                   + Create First Project
                 </button>
               </div>
@@ -678,7 +686,7 @@ export default function MentorDashboard() {
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {requests.map(req => (
-                <MentorRequestCard key={req.id} req={req} onCreateProject={() => setShowCreateModal(true)} />
+                <MentorRequestCard key={req.id} req={req} onCreateProject={(r) => setCreateFromRequest(r)} />
               ))}
             </div>
           </>
@@ -750,13 +758,14 @@ export default function MentorDashboard() {
       </main>
 
       {/* CREATE PROJECT MODAL */}
-      {showCreateModal && (
+      {createFromRequest !== null && (
         <CreateProjectModal
           mentorEmail={user.email}
           mentorName={profile?.name || ''}
           mentorId={user.uid}
-          onClose={() => setShowCreateModal(false)}
+          onClose={() => { setCreateFromRequest(null); setTab('projects') }}
           youthUsers={youthUsers}
+          fromRequest={createFromRequest?.id ? createFromRequest : null}
         />
       )}
     </div>
